@@ -7,24 +7,15 @@ import java.time.LocalDateTime;
 @Entity
 @Table(name = "mensajes")
 public class Mensaje {
-
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
-
-    @Column(nullable = false, columnDefinition = "TEXT")
+    private Long emisorId;
+    private Long receptorId;
+    private Long matchId;
     private String contenido;
-
-    @Column(nullable = false)
-    private LocalDateTime timestamp;
-
-    @ManyToOne
-    @JoinColumn(name = "emisor_id", nullable = false)
-    private Usuario emisor;
-
-    @ManyToOne
-    @JoinColumn(name = "match_id", nullable = false)
-    private Match match;
+    private LocalDateTime timestamp = LocalDateTime.now();
+    private LocalDateTime fechaEnvio = LocalDateTime.now();
 
     public Mensaje() {
     }
@@ -35,6 +26,30 @@ public class Mensaje {
 
     public void setId(Long id) {
         this.id = id;
+    }
+
+    public Long getEmisorId() {
+        return emisorId;
+    }
+
+    public void setEmisorId(Long emisorId) {
+        this.emisorId = emisorId;
+    }
+
+    public Long getReceptorId() {
+        return receptorId;
+    }
+
+    public void setReceptorId(Long receptorId) {
+        this.receptorId = receptorId;
+    }
+
+    public Long getMatchId() {
+        return matchId;
+    }
+
+    public void setMatchId(Long matchId) {
+        this.matchId = matchId;
     }
 
     public String getContenido() {
@@ -53,19 +68,11 @@ public class Mensaje {
         this.timestamp = timestamp;
     }
 
-    public Usuario getEmisor() {
-        return emisor;
+    public LocalDateTime getFechaEnvio() {
+        return fechaEnvio;
     }
 
-    public void setEmisor(Usuario emisor) {
-        this.emisor = emisor;
-    }
-
-    public Match getMatch() {
-        return match;
-    }
-
-    public void setMatch(Match match) {
-        this.match = match;
+    public void setFechaEnvio(LocalDateTime fechaEnvio) {
+        this.fechaEnvio = fechaEnvio;
     }
 }
