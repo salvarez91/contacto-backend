@@ -35,66 +35,52 @@ public class AuthController {
 
     @PostMapping("/login")
     public ResponseEntity<?> login(@RequestBody Map<String, String> credentials) {
-        String email = credentials.get("email") != null ? credentials.get("email").trim() : "";
+        String email = credentials.get("email") != null ? credentials.get("email").toLowerCase().trim() : "";
         String password = credentials.get("password") != null ? credentials.get("password").trim() : "";
 
         Optional<Usuario> usuarioOpt = usuarioRepository.findByEmail(email);
 
         if (usuarioOpt.isPresent()) {
             Usuario usuario = usuarioOpt.get();
-
             if (passwordEncoder.matches(password, usuario.getPassword())) {
                 String token = jwtUtil.generateToken(email);
-
                 Map<String, String> response = new HashMap<>();
                 response.put("token", token);
                 response.put("id", String.valueOf(usuario.getId()));
                 response.put("rol", usuario.getRol() != null ? usuario.getRol() : "MAYOR");
                 response.put("email", usuario.getEmail());
-
                 return ResponseEntity.ok(response);
             }
         }
-
-        return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
-                .body(Map.of("error", "Credenciales inválidas"));
+        return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(Map.of("error", "Credenciales inválidas"));
     }
 
     @PostMapping("/registro")
     public ResponseEntity<?> registrar(@RequestBody Map<String, String> datos) {
-        String email = datos.get("email") != null ? datos.get("email").trim() : "";
-
+        String email = datos.get("email") != null ? datos.get("email").toLowerCase().trim() : "";
         if (usuarioRepository.findByEmail(email).isPresent()) {
-            return ResponseEntity.status(HttpStatus.CONFLICT)
-                    .body(Map.of("error", "El email ya está registrado"));
+            return ResponseEntity.status(HttpStatus.CONFLICT).body(Map.of("error", "El email ya está registrado"));
         }
-
         Usuario nuevo = new Usuario();
         nuevo.setNombre(datos.get("nombre"));
         nuevo.setEmail(email);
         nuevo.setPassword(passwordEncoder.encode(datos.get("password")));
         nuevo.setRol(datos.get("rol") != null ? datos.get("rol").toUpperCase() : "MAYOR");
-
         usuarioRepository.save(nuevo);
-
         return ResponseEntity.ok(Map.of("mensaje", "Usuario creado con éxito"));
     }
 
     @PostMapping("/intereses")
-    public ResponseEntity<?> guardarIntereses(@RequestBody java.util.Map<String, Object> payload) {
-        String email = (String) payload.get("email");
+    public ResponseEntity<?> guardarIntereses(@RequestBody Map<String, Object> payload) {
+        String email = payload.get("email") != null ? ((String) payload.get("email")).toLowerCase().trim() : "";
         @SuppressWarnings("unchecked")
         java.util.List<String> nombresIntereses = (java.util.List<String>) payload.get("intereses");
-
-        java.util.Optional<Usuario> userOpt = usuarioRepository.findByEmail(email);
-
+        Optional<Usuario> userOpt = usuarioRepository.findByEmail(email);
         if (userOpt.isEmpty()) {
-            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(java.util.Map.of("error", "Usuario no encontrado"));
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(Map.of("error", "Usuario no encontrado"));
         }
-
         Usuario usuario = userOpt.get();
         java.util.Set<es.paloma.contacto.backend.model.Interes> intereses = new java.util.HashSet<>();
-
         for (String nombre : nombresIntereses) {
             es.paloma.contacto.backend.model.Interes interes = interesRepository.findByNombre(nombre)
                     .orElseGet(() -> {
@@ -104,10 +90,8 @@ public class AuthController {
                     });
             intereses.add(interes);
         }
-
         usuario.setIntereses(intereses);
         usuarioRepository.save(usuario);
-
-        return ResponseEntity.ok(java.util.Map.of("mensaje", "Intereses guardados"));
+        return ResponseEntity.ok(Map.of("mensaje", "Intereses guardados"));
     }
 }

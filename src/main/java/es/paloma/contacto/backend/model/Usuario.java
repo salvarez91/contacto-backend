@@ -5,6 +5,7 @@ import jakarta.persistence.*;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.util.HashSet;
 import java.util.Set;
 
 @Entity
@@ -33,10 +34,13 @@ public class Usuario {
     @Column(name = "fecha_registro", insertable = false, updatable = false)
     private LocalDateTime fechaRegistro;
 
-    @JsonIgnore
-    @ManyToMany
-    @JoinTable(name = "usuario_intereses", joinColumns = @JoinColumn(name = "usuario_id"), inverseJoinColumns = @JoinColumn(name = "interes_id"))
-    private Set<Interes> intereses;
+    @ManyToMany(fetch = FetchType.EAGER)
+    @JoinTable(
+            name = "usuario_intereses",
+            joinColumns = @JoinColumn(name = "usuario_id"),
+            inverseJoinColumns = @JoinColumn(name = "interes_id")
+    )
+    private Set<Interes> intereses = new HashSet<>();
 
     public Usuario() {
     }
