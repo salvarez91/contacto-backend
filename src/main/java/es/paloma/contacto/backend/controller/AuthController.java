@@ -1,13 +1,17 @@
 package es.paloma.contacto.backend.controller;
 
 import es.paloma.contacto.backend.model.Usuario;
+import es.paloma.contacto.backend.repository.InteresRepository;
 import es.paloma.contacto.backend.repository.UsuarioRepository;
 import es.paloma.contacto.backend.security.JwtUtil;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.crypto.password.PasswordEncoder;
-import org.springframework.web.bind.annotation.*;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RestController;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -21,6 +25,9 @@ public class AuthController {
     private UsuarioRepository usuarioRepository;
 
     @Autowired
+    private InteresRepository interesRepository;
+
+    @Autowired
     private JwtUtil jwtUtil;
 
     @Autowired
@@ -28,17 +35,13 @@ public class AuthController {
 
     @PostMapping("/login")
     public ResponseEntity<?> login(@RequestBody Map<String, String> credentials) {
-        // Usamos trim() para evitar el error del tabulador \t detectado en los logs
         String email = credentials.get("email") != null ? credentials.get("email").trim() : "";
         String password = credentials.get("password") != null ? credentials.get("password").trim() : "";
-
-        System.out.println("Intentando login para: " + email);
 
         Optional<Usuario> usuarioOpt = usuarioRepository.findByEmail(email);
 
         if (usuarioOpt.isPresent()) {
             Usuario usuario = usuarioOpt.get();
-            System.out.println("Usuario encontrado en BD. Comparando claves...");
 
             if (passwordEncoder.matches(password, usuario.getPassword())) {
                 String token = jwtUtil.generateToken(email);
@@ -50,18 +53,13 @@ public class AuthController {
                 response.put("email", usuario.getEmail());
 
                 return ResponseEntity.ok(response);
-            } else {
-                System.out.println("¡Error! La contraseña no coincide.");
             }
-        } else {
-            System.out.println("¡Error! No existe ningún usuario con email: " + email);
         }
 
         return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
                 .body(Map.of("error", "Credenciales inválidas"));
     }
 
-    // Cambiado de /registrar a /registro para coincidir con el ApiService de Android
     @PostMapping("/registro")
     public ResponseEntity<?> registrar(@RequestBody Map<String, String> datos) {
         String email = datos.get("email") != null ? datos.get("email").trim() : "";
@@ -79,7 +77,37 @@ public class AuthController {
 
         usuarioRepository.save(nuevo);
 
-        // Devolvemos un mapa vacío en lugar de .build() para que Retrofit no de error al parsear
         return ResponseEntity.ok(Map.of("mensaje", "Usuario creado con éxito"));
+    }
+
+    @PostMapping("/intereses")
+    public ResponseEntity<?> guardarIntereses(@RequestBody java.util.Map<String, Object> payload) {
+        String email = (String) payload.get("email");
+        @SuppressWarnings("unchecked")
+        java.util.List<String> nombresIntereses = (java.util.List<String>) payload.get("intereses");
+
+        java.util.Optional<Usuario> userOpt = usuarioRepository.findByEmail(email);
+
+        if (userOpt.isEmpty()) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(java.util.Map.of("error", "Usuario no encontrado"));
+        }
+
+        Usuario usuario = userOpt.get();
+        java.util.Set<es.paloma.contacto.backend.model.Interes> intereses = new java.util.HashSet<>();
+
+        for (String nombre : nombresIntereses) {
+            es.paloma.contacto.backend.model.Interes interes = interesRepository.findByNombre(nombre)
+                    .orElseGet(() -> {
+                        es.paloma.contacto.backend.model.Interes nuevo = new es.paloma.contacto.backend.model.Interes();
+                        nuevo.setNombre(nombre);
+                        return interesRepository.save(nuevo);
+                    });
+            intereses.add(interes);
+        }
+
+        usuario.setIntereses(intereses);
+        usuarioRepository.save(usuario);
+
+        return ResponseEntity.ok(java.util.Map.of("mensaje", "Intereses guardados"));
     }
 }
