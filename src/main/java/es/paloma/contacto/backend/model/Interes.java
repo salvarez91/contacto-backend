@@ -1,5 +1,6 @@
 package es.paloma.contacto.backend.model;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
 
 import java.util.Set;
@@ -15,33 +16,17 @@ public class Interes {
     @Column(nullable = false, unique = true, length = 50)
     private String nombre;
 
+    @JsonIgnore // SOLUCIÓN: Rompe el bucle infinito al convertir a JSON
     @ManyToMany(mappedBy = "intereses")
     private Set<Usuario> usuarios;
 
     public Interes() {
     }
 
-    public Long getId() {
-        return id;
-    }
-
-    public void setId(Long id) {
-        this.id = id;
-    }
-
-    public String getNombre() {
-        return nombre;
-    }
-
-    public void setNombre(String nombre) {
-        this.nombre = nombre;
-    }
-
-    public Set<Usuario> getUsuarios() {
-        return usuarios;
-    }
-
-    public void setUsuarios(Set<Usuario> usuarios) {
-        this.usuarios = usuarios;
-    }
+    public Long getId() { return id; }
+    public void setId(Long id) { this.id = id; }
+    public String getNombre() { return nombre; }
+    public void setNombre(String nombre) { this.nombre = nombre; }
+    public Set<Usuario> getUsuarios() { return usuarios; }
+    public void setUsuarios(Set<Usuario> usuarios) { this.usuarios = usuarios; }
 }

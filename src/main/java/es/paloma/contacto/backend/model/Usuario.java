@@ -1,5 +1,6 @@
 package es.paloma.contacto.backend.model;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
 
 import java.time.LocalDate;
@@ -12,18 +13,27 @@ public class Usuario {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
+
     @Column(nullable = false, length = 100)
     private String nombre;
+
     @Column(nullable = false, unique = true, length = 150)
     private String email;
+
+    @JsonIgnore
     @Column(nullable = false)
     private String password;
+
     @Column(nullable = false, length = 20)
     private String rol;
+
     @Column(name = "fecha_nacimiento")
     private LocalDate fechaNacimiento;
+
     @Column(name = "fecha_registro", insertable = false, updatable = false)
     private LocalDateTime fechaRegistro;
+
+    @JsonIgnore
     @ManyToMany
     @JoinTable(name = "usuario_intereses", joinColumns = @JoinColumn(name = "usuario_id"), inverseJoinColumns = @JoinColumn(name = "interes_id"))
     private Set<Interes> intereses;
