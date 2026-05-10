@@ -23,13 +23,10 @@ public class AuthController {
 
     @Autowired
     private UsuarioRepository usuarioRepository;
-
     @Autowired
     private InteresRepository interesRepository;
-
     @Autowired
     private JwtUtil jwtUtil;
-
     @Autowired
     private PasswordEncoder passwordEncoder;
 
@@ -39,7 +36,6 @@ public class AuthController {
         String password = credentials.get("password") != null ? credentials.get("password").trim() : "";
 
         Optional<Usuario> usuarioOpt = usuarioRepository.findByEmail(email);
-
         if (usuarioOpt.isPresent()) {
             Usuario usuario = usuarioOpt.get();
             if (passwordEncoder.matches(password, usuario.getPassword())) {
@@ -76,17 +72,16 @@ public class AuthController {
         @SuppressWarnings("unchecked")
         java.util.List<String> nombresIntereses = (java.util.List<String>) payload.get("intereses");
         Optional<Usuario> userOpt = usuarioRepository.findByEmail(email);
-        if (userOpt.isEmpty()) {
-            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(Map.of("error", "Usuario no encontrado"));
-        }
+        if (userOpt.isEmpty()) return ResponseEntity.status(HttpStatus.NOT_FOUND).build();
+
         Usuario usuario = userOpt.get();
         java.util.Set<es.paloma.contacto.backend.model.Interes> intereses = new java.util.HashSet<>();
         for (String nombre : nombresIntereses) {
             es.paloma.contacto.backend.model.Interes interes = interesRepository.findByNombre(nombre)
                     .orElseGet(() -> {
-                        es.paloma.contacto.backend.model.Interes nuevo = new es.paloma.contacto.backend.model.Interes();
-                        nuevo.setNombre(nombre);
-                        return interesRepository.save(nuevo);
+                        es.paloma.contacto.backend.model.Interes n = new es.paloma.contacto.backend.model.Interes();
+                        n.setNombre(nombre);
+                        return interesRepository.save(n);
                     });
             intereses.add(interes);
         }
