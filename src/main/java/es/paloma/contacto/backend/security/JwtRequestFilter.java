@@ -1,6 +1,5 @@
-package es.paloma.contacto.backend;
+package es.paloma.contacto.backend.security;
 
-import es.paloma.contacto.backend.security.JwtUtil;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
