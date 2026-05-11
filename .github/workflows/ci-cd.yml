@@ -1,0 +1,40 @@
+name: CI/CD para Contacto Backend
+
+permissions:
+  contents: read
+  packages: write
+
+on:
+  push:
+    branches:
+      - '**'          # Se ejecuta en cualquier rama
+  workflow_dispatch:  # Permite ejecución manual
+
+jobs:
+  build-and-push:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Descargar codigo
+        uses: actions/checkout@v4
+
+      - name: Configurar JDK 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 17
+
+      - name: Compilar y empaquetar (saltando tests)
+        run: mvn clean package -DskipTests
+
+      - name: Construir imagen Docker
+        run: docker build -t ghcr.io/${{ github.repository_owner }}/contacto-backend:latest .
+
+      - name: Iniciar sesion en GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Subir imagen a GHCR
+        run: docker push ghcr.io/${{ github.repository_owner }}/contacto-backend:latest
