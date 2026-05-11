@@ -1,5 +1,6 @@
 package es.paloma.contacto.backend.controller;
 
+import es.paloma.contacto.backend.exception.RecursoNoEncontradoException;
 import es.paloma.contacto.backend.model.Match;
 import es.paloma.contacto.backend.model.Usuario;
 import es.paloma.contacto.backend.repository.MatchRepository;
@@ -37,17 +38,14 @@ public class MatchController {
         String token = authHeader.substring(7);
         String email = jwtUtil.extractEmail(token);
 
-        Usuario mayorAutenticado = usuarioRepository.findByEmail(email).orElse(null);
+        Usuario mayorAutenticado = usuarioRepository.findByEmail(email)
+                .orElseThrow(() -> new RecursoNoEncontradoException("Usuario no encontrado"));
         Long voluntarioId = payload.get("voluntarioId");
 
-        if (mayorAutenticado == null || voluntarioId == null) {
-            return ResponseEntity.status(HttpStatus.BAD_REQUEST).build();
-        }
+        if (voluntarioId == null) throw new RecursoNoEncontradoException("Falta el ID del voluntario");
 
-        Usuario voluntario = usuarioRepository.findById(voluntarioId).orElse(null);
-        if (voluntario == null) {
-            return ResponseEntity.status(HttpStatus.NOT_FOUND).build();
-        }
+        Usuario voluntario = usuarioRepository.findById(voluntarioId)
+                .orElseThrow(() -> new RecursoNoEncontradoException("Voluntario no encontrado"));
 
         Match match = new Match();
         match.setCreatedAt(LocalDateTime.now());
@@ -60,17 +58,37 @@ public class MatchController {
     }
 
     @GetMapping("/sugerencias")
-    public ResponseEntity<List<Usuario>> sugerirVoluntarios(@RequestHeader("Authorization") String authHeader) {
-        try {
-            String token = authHeader.substring(7);
-            String email = jwtUtil.extractEmail(token);
-            Usuario usuarioAutenticado = usuarioRepository.findByEmail(email)
-                    .orElseThrow(() -> new RuntimeException("Usuario no encontrado"));
+    public ResponseEntity<List<Usuario>> sugerirVoluntarios(
+            @RequestHeader("Authorization") String authHeader,
+            @RequestParam(required = false) String interes) {
+        String email = jwtUtil.extractEmail(authHeader.substring(7));
+        Usuario usuario = usuarioRepository.findByEmail(email)
+                .orElseThrow(() -> new RecursoNoEncontradoException("Usuario no encontrado"));
 
-            List<Usuario> sugerencias = matchingService.sugerirVoluntarios(usuarioAutenticado.getId());
-            return ResponseEntity.ok(sugerencias);
-        } catch (RuntimeException e) {
-            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
+        if (!"MAYOR".equalsIgnoreCase(usuario.getRol())) {
+            return ResponseEntity.ok(List.of());
         }
+
+        List<Usuario> sugerencias = matchingService.sugerirVoluntarios(usuario.getId(), interes);
+        return ResponseEntity.ok(sugerencias);
+    }
+
+    @DeleteMapping("/{id}")
+    public ResponseEntity<Void> eliminarMatch(@PathVariable Long id,
+                                              @RequestHeader("Authorization") String authHeader) {
+        String email = jwtUtil.extractEmail(authHeader.substring(7));
+        Usuario usuario = usuarioRepository.findByEmail(email)
+                .orElseThrow(() -> new RecursoNoEncontradoException("Usuario no encontrado"));
+
+        Match match = matchRepository.findById(id)
+                .orElseThrow(() -> new RecursoNoEncontradoException("Match no encontrado"));
+
+        if (!match.getMayor().getId().equals(usuario.getId()) &&
+                !match.getVoluntario().getId().equals(usuario.getId())) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
+        }
+
+        matchRepository.delete(match);
+        return ResponseEntity.noContent().build();
     }
 }

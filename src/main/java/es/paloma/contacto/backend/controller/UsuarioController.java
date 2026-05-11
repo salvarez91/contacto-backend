@@ -1,5 +1,7 @@
 package es.paloma.contacto.backend.controller;
 
+import es.paloma.contacto.backend.dto.ActualizarPerfilRequest;
+import es.paloma.contacto.backend.dto.ContactoDTO;
 import es.paloma.contacto.backend.exception.RecursoNoEncontradoException;
 import es.paloma.contacto.backend.model.Usuario;
 import es.paloma.contacto.backend.repository.UsuarioRepository;
@@ -35,7 +37,7 @@ public class UsuarioController {
     }
 
     @GetMapping("/mis-contactos")
-    public ResponseEntity<List<Usuario>> getMisContactos(@RequestHeader("Authorization") String authHeader) {
+    public ResponseEntity<List<ContactoDTO>> getMisContactos(@RequestHeader("Authorization") String authHeader) {
         String email = jwtUtil.extractEmail(authHeader.substring(7));
         Usuario usuario = usuarioRepository.findByEmail(email)
                 .orElseThrow(() -> new RecursoNoEncontradoException("Usuario no encontrado"));
@@ -51,24 +53,17 @@ public class UsuarioController {
     }
 
     @PutMapping("/perfil")
-    public ResponseEntity<Usuario> actualizarPerfil(@RequestBody Map<String, Object> datos,
+    public ResponseEntity<Usuario> actualizarPerfil(@RequestBody ActualizarPerfilRequest datos,
                                                     @RequestHeader("Authorization") String authHeader) {
         String email = jwtUtil.extractEmail(authHeader.substring(7));
         Usuario usuario = usuarioRepository.findByEmail(email)
                 .orElseThrow(() -> new RecursoNoEncontradoException("Usuario no encontrado"));
 
-        if (datos.containsKey("nombre")) {
-            usuario.setNombre((String) datos.get("nombre"));
-        }
-        if (datos.containsKey("descripcion")) {
-            usuario.setDescripcion((String) datos.get("descripcion"));
-        }
-        if (datos.containsKey("puebloCiudad")) {
-            usuario.setPuebloCiudad((String) datos.get("puebloCiudad"));
-        }
-        if (datos.containsKey("fechaNacimiento")) {
-            usuario.setFechaNacimiento(LocalDate.parse((String) datos.get("fechaNacimiento")));
-        }
+        if (datos.getNombre() != null) usuario.setNombre(datos.getNombre());
+        if (datos.getDescripcion() != null) usuario.setDescripcion(datos.getDescripcion());
+        if (datos.getPuebloCiudad() != null) usuario.setPuebloCiudad(datos.getPuebloCiudad());
+        if (datos.getFechaNacimiento() != null)
+            usuario.setFechaNacimiento(LocalDate.parse(datos.getFechaNacimiento()));
 
         Usuario actualizado = usuarioRepository.save(usuario);
         return ResponseEntity.ok(actualizado);
