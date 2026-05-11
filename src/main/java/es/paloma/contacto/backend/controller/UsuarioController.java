@@ -2,6 +2,7 @@ package es.paloma.contacto.backend.controller;
 
 import es.paloma.contacto.backend.dto.ActualizarPerfilRequest;
 import es.paloma.contacto.backend.dto.ContactoDTO;
+import es.paloma.contacto.backend.exception.PeticionIncorrectaException;
 import es.paloma.contacto.backend.exception.RecursoNoEncontradoException;
 import es.paloma.contacto.backend.model.Usuario;
 import es.paloma.contacto.backend.repository.UsuarioRepository;
@@ -67,7 +68,7 @@ public class UsuarioController {
             try {
                 usuario.setFechaNacimiento(LocalDate.parse(datos.getFechaNacimiento()));
             } catch (DateTimeParseException e) {
-                throw new RecursoNoEncontradoException("Formato de fecha inválido. Use yyyy-MM-dd");
+                throw new PeticionIncorrectaException("Formato de fecha inválido. Use yyyy-MM-dd");
             }
         }
 
