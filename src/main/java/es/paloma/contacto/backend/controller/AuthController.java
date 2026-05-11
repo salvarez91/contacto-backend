@@ -39,7 +39,7 @@ public class AuthController {
         if (usuarioOpt.isPresent()) {
             Usuario usuario = usuarioOpt.get();
             if (passwordEncoder.matches(password, usuario.getPassword())) {
-                String token = jwtUtil.generateToken(email);
+                String token = jwtUtil.generateToken(email, usuario.getRol());
                 Map<String, String> response = new HashMap<>();
                 response.put("token", token);
                 response.put("id", String.valueOf(usuario.getId()));

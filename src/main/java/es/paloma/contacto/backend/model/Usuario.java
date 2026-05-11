@@ -28,6 +28,15 @@ public class Usuario {
     @Column(nullable = false, length = 20)
     private String rol;
 
+    @Column(nullable = false)
+    private boolean activo = true;
+
+    @Column(length = 200)
+    private String descripcion;
+
+    @Column(length = 100)
+    private String puebloCiudad;
+
     @Column(name = "fecha_nacimiento")
     private LocalDate fechaNacimiento;
 
@@ -83,6 +92,30 @@ public class Usuario {
 
     public void setRol(String rol) {
         this.rol = rol;
+    }
+
+    public boolean isActivo() {
+        return activo;
+    }
+
+    public void setActivo(boolean activo) {
+        this.activo = activo;
+    }
+
+    public String getDescripcion() {
+        return descripcion;
+    }
+
+    public void setDescripcion(String descripcion) {
+        this.descripcion = descripcion;
+    }
+
+    public String getPuebloCiudad() {
+        return puebloCiudad;
+    }
+
+    public void setPuebloCiudad(String puebloCiudad) {
+        this.puebloCiudad = puebloCiudad;
     }
 
     public LocalDate getFechaNacimiento() {
