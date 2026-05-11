@@ -13,17 +13,17 @@ import java.time.Duration;
 @Service
 public class GestorObjetosS3 {
 
-    private final static String NOMBRE_BUCKET_EN_S3 = "ffe-contacto-repositorio";
+    private static final String NOMBRE_BUCKET_EN_S3 = "ffe-contacto-repositorio";
     private static final int TIEMPO_VIDA_MINUTOS_URL = 10;
 
     public String obtenerURLPutDocumentoEnS3(String claveDocumento) {
         PutObjectRequest putObjectRequest = PutObjectRequest.builder()
                 .bucket(NOMBRE_BUCKET_EN_S3)
                 .key(claveDocumento)
+                .contentType("image/jpeg")
                 .build();
 
         S3Presigner presigner = GestorClientesServiciosAWS.getClientePrefirmadorBucketS3();
-
         PutObjectPresignRequest presignRequest = PutObjectPresignRequest.builder()
                 .signatureDuration(Duration.ofMinutes(TIEMPO_VIDA_MINUTOS_URL))
                 .putObjectRequest(putObjectRequest)
@@ -41,7 +41,6 @@ public class GestorObjetosS3 {
                 .build();
 
         S3Presigner presigner = GestorClientesServiciosAWS.getClientePrefirmadorBucketS3();
-
         PresignedGetObjectRequest presignedRequest = presigner.presignGetObject(builder -> builder
                 .getObjectRequest(getObjectRequest)
                 .signatureDuration(Duration.ofMinutes(TIEMPO_VIDA_MINUTOS_URL))
