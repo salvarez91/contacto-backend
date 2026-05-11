@@ -12,6 +12,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.time.LocalDate;
+import java.time.format.DateTimeParseException;
 import java.util.List;
 import java.util.Map;
 
@@ -62,8 +63,13 @@ public class UsuarioController {
         if (datos.getNombre() != null) usuario.setNombre(datos.getNombre());
         if (datos.getDescripcion() != null) usuario.setDescripcion(datos.getDescripcion());
         if (datos.getPuebloCiudad() != null) usuario.setPuebloCiudad(datos.getPuebloCiudad());
-        if (datos.getFechaNacimiento() != null)
-            usuario.setFechaNacimiento(LocalDate.parse(datos.getFechaNacimiento()));
+        if (datos.getFechaNacimiento() != null && !datos.getFechaNacimiento().isBlank()) {
+            try {
+                usuario.setFechaNacimiento(LocalDate.parse(datos.getFechaNacimiento()));
+            } catch (DateTimeParseException e) {
+                throw new RecursoNoEncontradoException("Formato de fecha inválido. Use yyyy-MM-dd");
+            }
+        }
 
         Usuario actualizado = usuarioRepository.save(usuario);
         return ResponseEntity.ok(actualizado);
