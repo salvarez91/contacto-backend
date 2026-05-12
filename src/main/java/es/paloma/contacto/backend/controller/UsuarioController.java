@@ -5,9 +5,7 @@ import es.paloma.contacto.backend.dto.ContactoDTO;
 import es.paloma.contacto.backend.exception.PeticionIncorrectaException;
 import es.paloma.contacto.backend.exception.RecursoNoEncontradoException;
 import es.paloma.contacto.backend.model.Usuario;
-import es.paloma.contacto.backend.repository.MatchRepository;
-import es.paloma.contacto.backend.repository.MensajeRepository;
-import es.paloma.contacto.backend.repository.UsuarioRepository;
+import es.paloma.contacto.backend.repository.*;
 import es.paloma.contacto.backend.security.JwtUtil;
 import es.paloma.contacto.backend.service.MatchingService;
 import jakarta.transaction.Transactional;
@@ -34,6 +32,12 @@ public class UsuarioController {
     private MatchRepository matchRepository;
 
     @Autowired
+    private AlertaRepository alertaRepository;
+
+    @Autowired
+    private EstadoAnimoRepository estadoAnimoRepository;
+
+    @Autowired
     private MatchingService matchingService;
 
     @Autowired
@@ -51,6 +55,8 @@ public class UsuarioController {
     @Transactional
     public ResponseEntity<Void> eliminarUsuario(@PathVariable Long id) {
         mensajeRepository.borrarTodosLosMensajesDeUsuario(id);
+        alertaRepository.deleteByReferidoId(id);
+        estadoAnimoRepository.deleteByUsuarioId(id);
         matchRepository.deleteByMayorIdOrVoluntarioId(id, id);
         usuarioRepository.deleteById(id);
         return ResponseEntity.noContent().build();
@@ -62,6 +68,14 @@ public class UsuarioController {
         Usuario usuario = usuarioRepository.findByEmail(email)
                 .orElseThrow(() -> new RecursoNoEncontradoException("Usuario no encontrado"));
         return ResponseEntity.ok(matchingService.obtenerMisContactos(usuario.getId()));
+    }
+
+    @GetMapping("/mi-perfil")
+    public ResponseEntity<Usuario> getMiPerfil(@RequestHeader("Authorization") String authHeader) {
+        String email = jwtUtil.extractEmail(authHeader.substring(7));
+        Usuario usuario = usuarioRepository.findByEmail(email)
+                .orElseThrow(() -> new RecursoNoEncontradoException("Usuario no encontrado"));
+        return ResponseEntity.ok(usuario);
     }
 
     @PutMapping("/perfil")
