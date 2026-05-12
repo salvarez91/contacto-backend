@@ -4,6 +4,7 @@ import es.paloma.contacto.backend.exception.RecursoNoEncontradoException;
 import es.paloma.contacto.backend.model.Match;
 import es.paloma.contacto.backend.model.Usuario;
 import es.paloma.contacto.backend.repository.MatchRepository;
+import es.paloma.contacto.backend.repository.MensajeRepository;
 import es.paloma.contacto.backend.repository.UsuarioRepository;
 import es.paloma.contacto.backend.security.JwtUtil;
 import es.paloma.contacto.backend.service.MatchingService;
@@ -28,6 +29,9 @@ public class MatchController {
 
     @Autowired
     private UsuarioRepository usuarioRepository;
+
+    @Autowired
+    private MensajeRepository mensajeRepository;
 
     @Autowired
     private JwtUtil jwtUtil;
@@ -83,10 +87,13 @@ public class MatchController {
         Match match = matchRepository.findById(id)
                 .orElseThrow(() -> new RecursoNoEncontradoException("Match no encontrado"));
 
-        if (!match.getMayor().getId().equals(usuario.getId()) &&
+        if (!"ADMIN".equals(usuario.getRol()) &&
+                !match.getMayor().getId().equals(usuario.getId()) &&
                 !match.getVoluntario().getId().equals(usuario.getId())) {
             return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
         }
+
+        mensajeRepository.borrarConversacion(match.getMayor().getId(), match.getVoluntario().getId());
 
         matchRepository.delete(match);
         return ResponseEntity.noContent().build();
