@@ -64,12 +64,12 @@ public class UsuarioController {
     @DeleteMapping("/{id}")
     @Transactional(rollbackFor = Exception.class)
     public ResponseEntity<?> eliminarUsuario(@PathVariable Long id) {
-        try {
-            Optional<Usuario> usuarioOpt = usuarioRepository.findById(id);
-            if (usuarioOpt.isEmpty()) {
-                throw new RecursoNoEncontradoException("El usuario a eliminar no existe");
-            }
+        Optional<Usuario> usuarioOpt = usuarioRepository.findById(id);
+        if (usuarioOpt.isEmpty()) {
+            throw new RecursoNoEncontradoException("No se puede eliminar: el usuario no existe");
+        }
 
+        try {
             mensajeRepository.borrarTodosLosMensajesDeUsuario(id);
             alertaRepository.deleteByReferidoId(id);
             estadoAnimoRepository.deleteByUsuarioId(id);
@@ -82,8 +82,7 @@ public class UsuarioController {
             usuarioRepository.deleteById(id);
             return ResponseEntity.noContent().build();
         } catch (Exception e) {
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                    .body(Map.of("error", "Error de integridad al eliminar: " + e.getMessage()));
+            throw new PeticionIncorrectaException("Error al eliminar el usuario y sus relaciones: " + e.getMessage());
         }
     }
 

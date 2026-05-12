@@ -18,7 +18,6 @@ public class WebSocketConfig implements WebSocketMessageBrokerConfigurer {
 
     @Override
     public void registerStompEndpoints(StompEndpointRegistry registry) {
-        // CORRECCIÓN CSWSH: Ahora se recomienda usar allowedOriginPatterns y se puede restringir más adelante.
         registry.addEndpoint("/ws").setAllowedOriginPatterns("*").withSockJS();
     }
 }

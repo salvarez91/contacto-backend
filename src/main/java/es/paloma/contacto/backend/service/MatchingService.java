@@ -36,7 +36,6 @@ public class MatchingService {
                 .map(match -> match.getVoluntario().getId())
                 .collect(Collectors.toSet());
 
-        // CORRECCIÓN ESCALABILIDAD: Llamada a BBDD en lugar de traer todos los usuarios a memoria.
         List<Usuario> voluntariosPosibles = usuarioRepository.findVoluntariosSugeridos(interesesMayorIds);
 
         return voluntariosPosibles.stream()
@@ -46,7 +45,6 @@ public class MatchingService {
                     return v.getIntereses().stream()
                             .anyMatch(i -> i != null && i.getNombre() != null && i.getNombre().equalsIgnoreCase(filtroInteres.trim()));
                 })
-                // Limitamos a los primeros 20 para no sobrecargar el móvil
                 .limit(20)
                 .collect(Collectors.toList());
     }

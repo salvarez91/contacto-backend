@@ -35,6 +35,13 @@ public class AuthController {
         String email = credentials.get("email") != null ? credentials.get("email").toLowerCase().trim() : "";
         String password = credentials.get("password") != null ? credentials.get("password").trim() : "";
 
+        if (email.isEmpty()) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(Map.of("error", "El email es obligatorio"));
+        }
+        if (password.isEmpty()) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(Map.of("error", "La contraseña es obligatoria"));
+        }
+
         Optional<Usuario> usuarioOpt = usuarioRepository.findByEmail(email);
         if (usuarioOpt.isPresent()) {
             Usuario usuario = usuarioOpt.get();
@@ -48,16 +55,25 @@ public class AuthController {
                 return ResponseEntity.ok(response);
             }
         }
-        return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(Map.of("error", "Credenciales inválidas"));
+        return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(Map.of("error", "Email o contraseña incorrectos"));
     }
 
     @PostMapping("/registro")
     public ResponseEntity<?> registrar(@RequestBody Map<String, String> datos) {
         String email = datos.get("email") != null ? datos.get("email").toLowerCase().trim() : "";
         String password = datos.get("password") != null ? datos.get("password").trim() : "";
+        String nombre = datos.get("nombre") != null ? datos.get("nombre").trim() : "";
+
+        if (nombre.isEmpty()) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(Map.of("error", "El nombre es obligatorio"));
+        }
+
+        if (email.isEmpty() || !email.contains("@")) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(Map.of("error", "Email inválido o vacío"));
+        }
 
         if (password.isEmpty() || password.length() < 6) {
-            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(Map.of("error", "Contraseña inválida o muy corta"));
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(Map.of("error", "La contraseña debe tener al menos 6 caracteres"));
         }
 
         if (usuarioRepository.findByEmail(email).isPresent()) {
@@ -83,8 +99,15 @@ public class AuthController {
         String email = payload.get("email") != null ? ((String) payload.get("email")).toLowerCase().trim() : "";
         @SuppressWarnings("unchecked")
         java.util.List<String> nombresIntereses = (java.util.List<String>) payload.get("intereses");
+
+        if (email.isEmpty()) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(Map.of("error", "Email obligatorio"));
+        }
+
         Optional<Usuario> userOpt = usuarioRepository.findByEmail(email);
-        if (userOpt.isEmpty()) return ResponseEntity.status(HttpStatus.NOT_FOUND).build();
+        if (userOpt.isEmpty()) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(Map.of("error", "Usuario no encontrado"));
+        }
 
         Usuario usuario = userOpt.get();
         java.util.Set<es.paloma.contacto.backend.model.Interes> intereses = new java.util.HashSet<>();

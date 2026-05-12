@@ -1,6 +1,8 @@
 package es.paloma.contacto.backend.controller;
 
+import es.paloma.contacto.backend.exception.AccesoNoAutorizadoException;
 import es.paloma.contacto.backend.exception.ConflictoException;
+import es.paloma.contacto.backend.exception.PeticionIncorrectaException;
 import es.paloma.contacto.backend.exception.RecursoNoEncontradoException;
 import es.paloma.contacto.backend.model.Match;
 import es.paloma.contacto.backend.model.Usuario;
@@ -50,13 +52,13 @@ public class MatchController {
                 .orElseThrow(() -> new RecursoNoEncontradoException("Usuario no encontrado"));
         Long voluntarioId = payload.get("voluntarioId");
 
-        if (voluntarioId == null) throw new RecursoNoEncontradoException("Falta el ID del voluntario");
+        if (voluntarioId == null) throw new PeticionIncorrectaException("ID de voluntario no proporcionado");
 
         boolean yaExiste = matchRepository.findByMayorId(mayorAutenticado.getId()).stream()
                 .anyMatch(m -> m.getVoluntario().getId().equals(voluntarioId));
 
         if (yaExiste) {
-            throw new ConflictoException("El match ya existe");
+            throw new ConflictoException("Ya tienes una conexión activa con este voluntario");
         }
 
         Usuario voluntario = usuarioRepository.findById(voluntarioId)
@@ -102,7 +104,7 @@ public class MatchController {
         if (!"ADMIN".equals(usuario.getRol()) &&
                 !match.getMayor().getId().equals(usuario.getId()) &&
                 !match.getVoluntario().getId().equals(usuario.getId())) {
-            return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
+            throw new AccesoNoAutorizadoException("No tienes permiso para eliminar esta conexión");
         }
 
         mensajeRepository.borrarConversacion(match.getMayor().getId(), match.getVoluntario().getId());

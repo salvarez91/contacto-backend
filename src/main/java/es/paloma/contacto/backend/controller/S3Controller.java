@@ -2,6 +2,7 @@ package es.paloma.contacto.backend.controller;
 
 import es.paloma.contacto.backend.aws.GestorObjetosS3;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -33,11 +34,18 @@ public class S3Controller {
 
     @GetMapping("/url-lectura")
     public ResponseEntity<Map<String, String>> obtenerUrlLectura(@RequestParam("clave") String clave) {
-        String urlFirma = gestorObjetosS3.obtenerURLGetDocumentoEnS3(clave);
+        if (clave == null || clave.isBlank()) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(Map.of("error", "La clave del archivo es obligatoria"));
+        }
 
-        Map<String, String> respuesta = new HashMap<>();
-        respuesta.put("url", urlFirma);
-
-        return ResponseEntity.ok(respuesta);
+        try {
+            String urlFirma = gestorObjetosS3.obtenerURLGetDocumentoEnS3(clave);
+            Map<String, String> respuesta = new HashMap<>();
+            respuesta.put("url", urlFirma);
+            return ResponseEntity.ok(respuesta);
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(Map.of("error", "Error al generar la URL de S3: " + e.getMessage()));
+        }
     }
 }
