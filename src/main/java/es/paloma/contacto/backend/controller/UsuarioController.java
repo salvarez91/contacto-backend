@@ -5,9 +5,12 @@ import es.paloma.contacto.backend.dto.ContactoDTO;
 import es.paloma.contacto.backend.exception.PeticionIncorrectaException;
 import es.paloma.contacto.backend.exception.RecursoNoEncontradoException;
 import es.paloma.contacto.backend.model.Usuario;
+import es.paloma.contacto.backend.repository.MatchRepository;
+import es.paloma.contacto.backend.repository.MensajeRepository;
 import es.paloma.contacto.backend.repository.UsuarioRepository;
 import es.paloma.contacto.backend.security.JwtUtil;
 import es.paloma.contacto.backend.service.MatchingService;
+import jakarta.transaction.Transactional;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -25,6 +28,12 @@ public class UsuarioController {
     private UsuarioRepository usuarioRepository;
 
     @Autowired
+    private MensajeRepository mensajeRepository;
+
+    @Autowired
+    private MatchRepository matchRepository;
+
+    @Autowired
     private MatchingService matchingService;
 
     @Autowired
@@ -38,20 +47,21 @@ public class UsuarioController {
         return usuarioRepository.findAll();
     }
 
+    @DeleteMapping("/{id}")
+    @Transactional
+    public ResponseEntity<Void> eliminarUsuario(@PathVariable Long id) {
+        mensajeRepository.borrarTodosLosMensajesDeUsuario(id);
+        matchRepository.deleteByMayorIdOrVoluntarioId(id, id);
+        usuarioRepository.deleteById(id);
+        return ResponseEntity.noContent().build();
+    }
+
     @GetMapping("/mis-contactos")
     public ResponseEntity<List<ContactoDTO>> getMisContactos(@RequestHeader("Authorization") String authHeader) {
         String email = jwtUtil.extractEmail(authHeader.substring(7));
         Usuario usuario = usuarioRepository.findByEmail(email)
                 .orElseThrow(() -> new RecursoNoEncontradoException("Usuario no encontrado"));
         return ResponseEntity.ok(matchingService.obtenerMisContactos(usuario.getId()));
-    }
-
-    @GetMapping("/mi-perfil")
-    public ResponseEntity<Usuario> getMiPerfil(@RequestHeader("Authorization") String authHeader) {
-        String email = jwtUtil.extractEmail(authHeader.substring(7));
-        Usuario usuario = usuarioRepository.findByEmail(email)
-                .orElseThrow(() -> new RecursoNoEncontradoException("Usuario no encontrado"));
-        return ResponseEntity.ok(usuario);
     }
 
     @PutMapping("/perfil")
@@ -72,14 +82,7 @@ public class UsuarioController {
             }
         }
 
-        Usuario actualizado = usuarioRepository.save(usuario);
-        return ResponseEntity.ok(actualizado);
-    }
-
-    @GetMapping("/upload-url/{nombreArchivo}")
-    public ResponseEntity<Map<String, String>> obtenerUrlSubidaS3(@PathVariable String nombreArchivo) {
-        String url = "https://ffe-contacto-repositorio.s3.us-east-1.amazonaws.com/perfiles/" + nombreArchivo;
-        return ResponseEntity.ok(Map.of("url", url));
+        return ResponseEntity.ok(usuarioRepository.save(usuario));
     }
 
     @GetMapping("/read-url/{nombreArchivo}")

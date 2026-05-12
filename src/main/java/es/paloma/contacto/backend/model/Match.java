@@ -1,6 +1,7 @@
 package es.paloma.contacto.backend.model;
 
 import jakarta.persistence.*;
+
 import java.time.LocalDateTime;
 
 @Entity
@@ -25,20 +26,46 @@ public class Match {
     @Column(name = "is_active", nullable = false)
     private boolean isActive;
 
-    public Match() {}
+    public Match() {
+    }
 
-    public Long getId() { return id; }
-    public void setId(Long id) { this.id = id; }
+    public Long getId() {
+        return id;
+    }
 
-    public Usuario getMayor() { return mayor; }
-    public void setMayor(Usuario mayor) { this.mayor = mayor; }
+    public void setId(Long id) {
+        this.id = id;
+    }
 
-    public Usuario getVoluntario() { return voluntario; }
-    public void setVoluntario(Usuario voluntario) { this.voluntario = voluntario; }
+    public Usuario getMayor() {
+        return mayor;
+    }
 
-    public LocalDateTime getCreatedAt() { return createdAt; }
-    public void setCreatedAt(LocalDateTime createdAt) { this.createdAt = createdAt; }
+    public void setMayor(Usuario mayor) {
+        this.mayor = mayor;
+    }
 
-    public boolean isActive() { return isActive; }
-    public void setActive(boolean active) { isActive = active; }
+    public Usuario getVoluntario() {
+        return voluntario;
+    }
+
+    public void setVoluntario(Usuario voluntario) {
+        this.voluntario = voluntario;
+    }
+
+    public LocalDateTime getCreatedAt() {
+        return createdAt;
+    }
+
+    public void setCreatedAt(LocalDateTime createdAt) {
+        this.createdAt = createdAt;
+    }
+
+    public boolean isActive() {
+        return isActive;
+    }
+
+    public void setActive(boolean active) {
+        isActive = active;
+    }
 }
