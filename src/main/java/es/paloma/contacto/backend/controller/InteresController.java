@@ -3,6 +3,7 @@ package es.paloma.contacto.backend.controller;
 import es.paloma.contacto.backend.model.Interes;
 import es.paloma.contacto.backend.repository.InteresRepository;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -20,6 +21,7 @@ public class InteresController {
     }
 
     @PostMapping
+    @PreAuthorize("hasRole('ADMIN')")
     public Interes create(@RequestBody Interes interes) {
         return interesRepository.save(interes);
     }

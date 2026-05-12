@@ -8,6 +8,7 @@ import es.paloma.contacto.backend.model.Usuario;
 import es.paloma.contacto.backend.repository.AlertaRepository;
 import es.paloma.contacto.backend.repository.MatchRepository;
 import es.paloma.contacto.backend.repository.UsuarioRepository;
+import jakarta.transaction.Transactional;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -36,6 +37,7 @@ public class AdminController {
     }
 
     @PutMapping("/usuarios/{id}/toggle")
+    @Transactional
     public ResponseEntity<Usuario> toggleActivo(@PathVariable Long id) {
         return usuarioRepository.findById(id).map(usuario -> {
             usuario.setActivo(!usuario.isActivo());
@@ -45,9 +47,7 @@ public class AdminController {
 
     @DeleteMapping("/usuarios/{id}")
     public ResponseEntity<Void> eliminarUsuario(@PathVariable Long id) {
-        Usuario usuario = usuarioRepository.findById(id)
-                .orElseThrow(() -> new RecursoNoEncontradoException("Usuario no encontrado"));
-        usuarioRepository.delete(usuario);
+        usuarioRepository.deleteById(id);
         return ResponseEntity.noContent().build();
     }
 
@@ -65,6 +65,7 @@ public class AdminController {
     }
 
     @DeleteMapping("/matches/{id}")
+    @Transactional
     public ResponseEntity<Void> eliminarMatch(@PathVariable Long id) {
         Match match = matchRepository.findById(id)
                 .orElseThrow(() -> new RecursoNoEncontradoException("Match no encontrado"));
@@ -78,6 +79,7 @@ public class AdminController {
     }
 
     @PutMapping("/alertas/{id}/atender")
+    @Transactional
     public ResponseEntity<Alerta> atenderAlerta(@PathVariable Long id) {
         return alertaRepository.findById(id).map(alerta -> {
             alerta.setVista(true);

@@ -1,5 +1,6 @@
 package es.paloma.contacto.backend.controller;
 
+import es.paloma.contacto.backend.exception.ConflictoException;
 import es.paloma.contacto.backend.exception.RecursoNoEncontradoException;
 import es.paloma.contacto.backend.model.Match;
 import es.paloma.contacto.backend.model.Usuario;
@@ -8,12 +9,14 @@ import es.paloma.contacto.backend.repository.MensajeRepository;
 import es.paloma.contacto.backend.repository.UsuarioRepository;
 import es.paloma.contacto.backend.security.JwtUtil;
 import es.paloma.contacto.backend.service.MatchingService;
+import jakarta.transaction.Transactional;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.time.LocalDateTime;
+import java.time.ZoneOffset;
 import java.util.List;
 import java.util.Map;
 
@@ -37,6 +40,7 @@ public class MatchController {
     private JwtUtil jwtUtil;
 
     @PostMapping
+    @Transactional
     public ResponseEntity<Match> createMatch(@RequestBody Map<String, Long> payload,
                                              @RequestHeader("Authorization") String authHeader) {
         String token = authHeader.substring(7);
@@ -48,11 +52,18 @@ public class MatchController {
 
         if (voluntarioId == null) throw new RecursoNoEncontradoException("Falta el ID del voluntario");
 
+        boolean yaExiste = matchRepository.findByMayorId(mayorAutenticado.getId()).stream()
+                .anyMatch(m -> m.getVoluntario().getId().equals(voluntarioId));
+
+        if (yaExiste) {
+            throw new ConflictoException("El match ya existe");
+        }
+
         Usuario voluntario = usuarioRepository.findById(voluntarioId)
                 .orElseThrow(() -> new RecursoNoEncontradoException("Voluntario no encontrado"));
 
         Match match = new Match();
-        match.setCreatedAt(LocalDateTime.now());
+        match.setCreatedAt(LocalDateTime.now(ZoneOffset.UTC));
         match.setActive(true);
         match.setMayor(mayorAutenticado);
         match.setVoluntario(voluntario);
@@ -78,6 +89,7 @@ public class MatchController {
     }
 
     @DeleteMapping("/{id}")
+    @Transactional
     public ResponseEntity<Void> eliminarMatch(@PathVariable Long id,
                                               @RequestHeader("Authorization") String authHeader) {
         String email = jwtUtil.extractEmail(authHeader.substring(7));

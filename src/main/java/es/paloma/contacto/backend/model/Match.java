@@ -1,13 +1,13 @@
 package es.paloma.contacto.backend.model;
 
 import jakarta.persistence.*;
-
 import java.time.LocalDateTime;
 
 @Entity
-@Table(name = "matches")
+@Table(name = "matches", uniqueConstraints = {
+        @UniqueConstraint(name = "uk_match_mayor_voluntario", columnNames = {"mayor_id", "voluntario_id"})
+})
 public class Match {
-
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;

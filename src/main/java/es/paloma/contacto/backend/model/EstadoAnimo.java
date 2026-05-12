@@ -5,14 +5,15 @@ import jakarta.persistence.*;
 import java.time.LocalDate;
 
 @Entity
-@Table(name = "estado_animo")
+@Table(name = "estado_animo", indexes = {
+        @Index(name = "idx_estado_usuario_fecha", columnList = "usuario_id, fecha")
+})
 public class EstadoAnimo {
-
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @Column(name = "nivel_emocional", nullable = false)
+    @Column(name = "nivel_emocional", nullable = false, columnDefinition = "integer check (nivel_emocional >= 1 and nivel_emocional <= 5)")
     private int nivelEmocional;
 
     @Column(nullable = false)

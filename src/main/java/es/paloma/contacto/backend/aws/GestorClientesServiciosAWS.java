@@ -1,23 +1,21 @@
 package es.paloma.contacto.backend.aws;
 
-import software.amazon.awssdk.auth.credentials.ProfileCredentialsProvider;
+import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Configuration;
+import software.amazon.awssdk.auth.credentials.DefaultCredentialsProvider;
 import software.amazon.awssdk.regions.Region;
 import software.amazon.awssdk.services.s3.presigner.S3Presigner;
 
+@Configuration
 public class GestorClientesServiciosAWS {
-    private static final String PERFIL_CREDENCIALES_AWS = "default";
 
     public final static Region REGION_AWS = Region.US_EAST_1;
 
-    private GestorClientesServiciosAWS() {
-    }
-
-    public static S3Presigner getClientePrefirmadorBucketS3() {
-        ProfileCredentialsProvider credentialsProvider = ProfileCredentialsProvider.create(PERFIL_CREDENCIALES_AWS);
-
+    @Bean
+    public S3Presigner s3Presigner() {
         return S3Presigner.builder()
                 .region(REGION_AWS)
-                .credentialsProvider(credentialsProvider)
+                .credentialsProvider(DefaultCredentialsProvider.create())
                 .build();
     }
 }

@@ -27,6 +27,7 @@ public class MatchingService {
                 .orElseThrow(() -> new RuntimeException("Usuario no encontrado"));
 
         Set<Long> interesesMayorIds = mayor.getIntereses().stream()
+                .filter(i -> i != null && i.getId() != null)
                 .map(Interes::getId)
                 .collect(Collectors.toSet());
 
@@ -35,16 +36,18 @@ public class MatchingService {
                 .map(match -> match.getVoluntario().getId())
                 .collect(Collectors.toSet());
 
-        return usuarioRepository.findAll().stream()
-                .filter(u -> "VOLUNTARIO".equals(u.getRol()))
-                .filter(v -> v.getIntereses().stream()
-                        .anyMatch(i -> interesesMayorIds.contains(i.getId())))
+        // CORRECCIÓN ESCALABILIDAD: Llamada a BBDD en lugar de traer todos los usuarios a memoria.
+        List<Usuario> voluntariosPosibles = usuarioRepository.findVoluntariosSugeridos(interesesMayorIds);
+
+        return voluntariosPosibles.stream()
                 .filter(v -> !idsConMatch.contains(v.getId()))
                 .filter(v -> {
                     if (filtroInteres == null || filtroInteres.isBlank()) return true;
                     return v.getIntereses().stream()
-                            .anyMatch(i -> i.getNombre().equalsIgnoreCase(filtroInteres.trim()));
+                            .anyMatch(i -> i != null && i.getNombre() != null && i.getNombre().equalsIgnoreCase(filtroInteres.trim()));
                 })
+                // Limitamos a los primeros 20 para no sobrecargar el móvil
+                .limit(20)
                 .collect(Collectors.toList());
     }
 

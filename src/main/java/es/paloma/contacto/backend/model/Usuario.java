@@ -40,16 +40,33 @@ public class Usuario {
     @Column(name = "fecha_nacimiento")
     private LocalDate fechaNacimiento;
 
-    @Column(name = "fecha_registro", insertable = false, updatable = false)
+    @Column(name = "fecha_registro", updatable = false)
     private LocalDateTime fechaRegistro;
 
-    @ManyToMany(fetch = FetchType.EAGER)
+    @PrePersist
+    protected void onCreate() {
+        fechaRegistro = LocalDateTime.now();
+    }
+
+    @ManyToMany(fetch = FetchType.LAZY)
     @JoinTable(
             name = "usuario_intereses",
             joinColumns = @JoinColumn(name = "usuario_id"),
             inverseJoinColumns = @JoinColumn(name = "interes_id")
     )
     private Set<Interes> intereses = new HashSet<>();
+
+    @OneToMany(mappedBy = "referido", cascade = CascadeType.ALL, orphanRemoval = true)
+    private Set<Alerta> alertas = new HashSet<>();
+
+    @OneToMany(mappedBy = "usuario", cascade = CascadeType.ALL, orphanRemoval = true)
+    private Set<EstadoAnimo> estadosAnimo = new HashSet<>();
+
+    @OneToMany(mappedBy = "mayor", cascade = CascadeType.ALL, orphanRemoval = true)
+    private Set<Match> matchesComoMayor = new HashSet<>();
+
+    @OneToMany(mappedBy = "voluntario", cascade = CascadeType.ALL, orphanRemoval = true)
+    private Set<Match> matchesComoVoluntario = new HashSet<>();
 
     public Usuario() {
     }

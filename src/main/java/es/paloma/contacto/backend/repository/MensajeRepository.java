@@ -5,6 +5,7 @@ import jakarta.transaction.Transactional;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
 import java.util.List;
@@ -12,18 +13,16 @@ import java.util.List;
 @Repository
 public interface MensajeRepository extends JpaRepository<Mensaje, Long> {
 
-    @Query("SELECT m FROM Mensaje m WHERE (m.emisorId = ?1 AND m.receptorId = ?2) " +
-            "OR (m.emisorId = ?2 AND m.receptorId = ?1) ORDER BY m.id ASC")
-    List<Mensaje> findConversacion(Long u1, Long u2);
+    @Query("SELECT m FROM Mensaje m WHERE (m.emisorId = :u1 AND m.receptorId = :u2) OR (m.emisorId = :u2 AND m.receptorId = :u1) ORDER BY m.id ASC")
+    List<Mensaje> findConversacion(@Param("u1") Long u1, @Param("u2") Long u2);
 
     @Modifying
     @Transactional
-    @Query("DELETE FROM Mensaje m WHERE (m.emisorId = ?1 AND m.receptorId = ?2) " +
-            "OR (m.emisorId = ?2 AND m.receptorId = ?1)")
-    void borrarConversacion(Long u1, Long u2);
+    @Query("DELETE FROM Mensaje m WHERE (m.emisorId = :u1 AND m.receptorId = :u2) OR (m.emisorId = :u2 AND m.receptorId = :u1)")
+    void borrarConversacion(@Param("u1") Long u1, @Param("u2") Long u2);
 
     @Modifying
     @Transactional
-    @Query("DELETE FROM Mensaje m WHERE m.emisorId = ?1 OR m.receptorId = ?1")
-    void borrarTodosLosMensajesDeUsuario(Long usuarioId);
+    @Query("DELETE FROM Mensaje m WHERE m.emisorId = :usuarioId OR m.receptorId = :usuarioId")
+    void borrarTodosLosMensajesDeUsuario(@Param("usuarioId") Long usuarioId);
 }

@@ -54,14 +54,26 @@ public class AuthController {
     @PostMapping("/registro")
     public ResponseEntity<?> registrar(@RequestBody Map<String, String> datos) {
         String email = datos.get("email") != null ? datos.get("email").toLowerCase().trim() : "";
+        String password = datos.get("password") != null ? datos.get("password").trim() : "";
+
+        if (password.isEmpty() || password.length() < 6) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(Map.of("error", "Contraseña inválida o muy corta"));
+        }
+
         if (usuarioRepository.findByEmail(email).isPresent()) {
             return ResponseEntity.status(HttpStatus.CONFLICT).body(Map.of("error", "El email ya está registrado"));
         }
+
+        String rolEntrada = datos.get("rol") != null ? datos.get("rol").toUpperCase() : "MAYOR";
+        if (rolEntrada.equals("ADMIN")) {
+            rolEntrada = "MAYOR";
+        }
+
         Usuario nuevo = new Usuario();
         nuevo.setNombre(datos.get("nombre"));
         nuevo.setEmail(email);
-        nuevo.setPassword(passwordEncoder.encode(datos.get("password")));
-        nuevo.setRol(datos.get("rol") != null ? datos.get("rol").toUpperCase() : "MAYOR");
+        nuevo.setPassword(passwordEncoder.encode(password));
+        nuevo.setRol(rolEntrada);
         usuarioRepository.save(nuevo);
         return ResponseEntity.ok(Map.of("mensaje", "Usuario creado con éxito"));
     }
@@ -76,15 +88,14 @@ public class AuthController {
 
         Usuario usuario = userOpt.get();
         java.util.Set<es.paloma.contacto.backend.model.Interes> intereses = new java.util.HashSet<>();
-        for (String nombre : nombresIntereses) {
-            es.paloma.contacto.backend.model.Interes interes = interesRepository.findByNombre(nombre)
-                    .orElseGet(() -> {
-                        es.paloma.contacto.backend.model.Interes n = new es.paloma.contacto.backend.model.Interes();
-                        n.setNombre(nombre);
-                        return interesRepository.save(n);
-                    });
-            intereses.add(interes);
+
+        if (nombresIntereses != null) {
+            for (String nombre : nombresIntereses) {
+                Optional<es.paloma.contacto.backend.model.Interes> interesOpt = interesRepository.findByNombre(nombre);
+                interesOpt.ifPresent(intereses::add);
+            }
         }
+
         usuario.setIntereses(intereses);
         usuarioRepository.save(usuario);
         return ResponseEntity.ok(Map.of("mensaje", "Intereses guardados"));
