@@ -21,4 +21,9 @@ public interface MensajeRepository extends JpaRepository<Mensaje, Long> {
     @Query("DELETE FROM Mensaje m WHERE (m.emisorId = ?1 AND m.receptorId = ?2) " +
             "OR (m.emisorId = ?2 AND m.receptorId = ?1)")
     void borrarConversacion(Long u1, Long u2);
+
+    @Modifying
+    @Transactional
+    @Query("DELETE FROM Mensaje m WHERE m.emisorId = ?1 OR m.receptorId = ?1")
+    void borrarTodosLosMensajesDeUsuario(Long usuarioId);
 }
