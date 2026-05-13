@@ -1,4 +1,3 @@
-// UsuarioController.java
 package es.paloma.contacto.backend.controller;
 
 import es.paloma.contacto.backend.aws.GestorObjetosS3;
@@ -102,17 +101,13 @@ public class UsuarioController {
         if (sizeBytes != null && sizeBytes > MAX_FOTO_BYTES) {
             throw new PeticionIncorrectaException("La imagen no puede superar 5 MB");
         }
-
         Usuario usuario = usuarioRepository.findByEmail(principal.getName())
                 .orElseThrow(() -> new RecursoNoEncontradoException("Usuario no encontrado"));
-
         String ext = (extension != null && !extension.isBlank()) ? extension : "jpg";
         String key = gestorObjetosS3.generarNombreUnico(usuario.getId(), ext);
         String uploadUrl = gestorObjetosS3.generarUrlSubida(key, 15);
-
         usuario.setFotoPerfilKey(key);
         usuarioRepository.save(usuario);
-
         return ResponseEntity.ok(Map.of(
                 "uploadUrl", uploadUrl,
                 "key", key,
@@ -124,11 +119,9 @@ public class UsuarioController {
     public ResponseEntity<Map<String, String>> getReadUrl(Principal principal) {
         Usuario usuario = usuarioRepository.findByEmail(principal.getName())
                 .orElseThrow(() -> new RecursoNoEncontradoException("Usuario no encontrado"));
-
         if (usuario.getFotoPerfilKey() == null || usuario.getFotoPerfilKey().isBlank()) {
             return ResponseEntity.ok(Map.of("url", ""));
         }
-
         String url = gestorObjetosS3.obtenerUrlLectura(usuario.getFotoPerfilKey());
         return ResponseEntity.ok(Map.of("url", url));
     }

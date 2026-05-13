@@ -1,4 +1,3 @@
-// UsuarioPerfilDTO.java
 package es.paloma.contacto.backend.dto;
 
 import java.util.List;
