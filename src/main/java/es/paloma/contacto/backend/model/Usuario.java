@@ -2,6 +2,9 @@ package es.paloma.contacto.backend.model;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
+import jakarta.validation.constraints.Email;
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.Size;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
@@ -15,13 +18,19 @@ public class Usuario {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
+    @NotBlank(message = "El nombre es obligatorio")
+    @Size(max = 100)
     @Column(nullable = false, length = 100)
     private String nombre;
 
+    @NotBlank(message = "El email es obligatorio")
+    @Email(message = "Debe ser un email válido")
+    @Size(max = 150)
     @Column(nullable = false, unique = true, length = 150)
     private String email;
 
     @JsonIgnore
+    @NotBlank(message = "La contraseña es obligatoria")
     @Column(nullable = false)
     private String password;
 

@@ -2,6 +2,8 @@ package es.paloma.contacto.backend.exception;
 
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.validation.FieldError;
+import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 
@@ -39,6 +41,19 @@ public class ManejadorGlobalExcepciones {
     @ExceptionHandler(ConflictoException.class)
     public ResponseEntity<Object> manejarConflicto(ConflictoException ex) {
         return crearRespuesta(HttpStatus.CONFLICT, ex.getMessage());
+    }
+    
+    @ExceptionHandler(MethodArgumentNotValidException.class)
+    public ResponseEntity<Object> manejarValidacion(MethodArgumentNotValidException ex) {
+        Map<String, String> errores = new LinkedHashMap<>();
+        ex.getBindingResult().getAllErrors().forEach((error) -> {
+            String campo = ((FieldError) error).getField();
+            String mensaje = error.getDefaultMessage();
+            errores.put(campo, mensaje);
+        });
+        
+        String primerMensaje = errores.values().iterator().next();
+        return crearRespuesta(HttpStatus.BAD_REQUEST, primerMensaje);
     }
 
     @ExceptionHandler(Exception.class)

@@ -82,7 +82,7 @@ public class UsuarioController {
             usuarioRepository.deleteById(id);
             return ResponseEntity.noContent().build();
         } catch (Exception e) {
-            throw new PeticionIncorrectaException("Error al eliminar el usuario y sus relaciones: " + e.getMessage());
+            throw new RuntimeException("Error al eliminar el usuario y sus relaciones: " + e.getMessage());
         }
     }
 

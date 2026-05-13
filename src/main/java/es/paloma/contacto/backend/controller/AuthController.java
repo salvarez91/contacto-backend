@@ -4,6 +4,7 @@ import es.paloma.contacto.backend.model.Usuario;
 import es.paloma.contacto.backend.repository.InteresRepository;
 import es.paloma.contacto.backend.repository.UsuarioRepository;
 import es.paloma.contacto.backend.security.JwtUtil;
+import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -36,10 +37,10 @@ public class AuthController {
         String password = credentials.get("password") != null ? credentials.get("password").trim() : "";
 
         if (email.isEmpty()) {
-            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(Map.of("error", "El email es obligatorio"));
+            throw new es.paloma.contacto.backend.exception.PeticionIncorrectaException("El email es obligatorio");
         }
         if (password.isEmpty()) {
-            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(Map.of("error", "La contraseña es obligatoria"));
+            throw new es.paloma.contacto.backend.exception.PeticionIncorrectaException("La contraseña es obligatoria");
         }
 
         Optional<Usuario> usuarioOpt = usuarioRepository.findByEmail(email);
@@ -55,41 +56,26 @@ public class AuthController {
                 return ResponseEntity.ok(response);
             }
         }
-        return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(Map.of("error", "Email o contraseña incorrectos"));
+        throw new es.paloma.contacto.backend.exception.AccesoNoAutorizadoException("Email o contraseña incorrectos");
     }
 
     @PostMapping("/registro")
-    public ResponseEntity<?> registrar(@RequestBody Map<String, String> datos) {
-        String email = datos.get("email") != null ? datos.get("email").toLowerCase().trim() : "";
-        String password = datos.get("password") != null ? datos.get("password").trim() : "";
-        String nombre = datos.get("nombre") != null ? datos.get("nombre").trim() : "";
-
-        if (nombre.isEmpty()) {
-            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(Map.of("error", "El nombre es obligatorio"));
-        }
-
-        if (email.isEmpty() || !email.contains("@")) {
-            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(Map.of("error", "Email inválido o vacío"));
-        }
-
-        if (password.isEmpty() || password.length() < 6) {
-            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(Map.of("error", "La contraseña debe tener al menos 6 caracteres"));
-        }
-
+    public ResponseEntity<?> registrar(@Valid @RequestBody Usuario nuevo) {
+        String email = nuevo.getEmail().toLowerCase().trim();
+        
         if (usuarioRepository.findByEmail(email).isPresent()) {
-            return ResponseEntity.status(HttpStatus.CONFLICT).body(Map.of("error", "El email ya está registrado"));
+            throw new es.paloma.contacto.backend.exception.ConflictoException("El email ya está registrado");
         }
 
-        String rolEntrada = datos.get("rol") != null ? datos.get("rol").toUpperCase() : "MAYOR";
-        if (rolEntrada.equals("ADMIN")) {
-            rolEntrada = "MAYOR";
-        }
-
-        Usuario nuevo = new Usuario();
-        nuevo.setNombre(datos.get("nombre"));
         nuevo.setEmail(email);
-        nuevo.setPassword(passwordEncoder.encode(password));
-        nuevo.setRol(rolEntrada);
+        nuevo.setPassword(passwordEncoder.encode(nuevo.getPassword()));
+        
+        if (nuevo.getRol() == null || nuevo.getRol().equalsIgnoreCase("ADMIN")) {
+            nuevo.setRol("MAYOR");
+        } else {
+            nuevo.setRol(nuevo.getRol().toUpperCase());
+        }
+
         usuarioRepository.save(nuevo);
         return ResponseEntity.ok(Map.of("mensaje", "Usuario creado con éxito"));
     }
