@@ -2,6 +2,7 @@ package es.paloma.contacto.backend.security;
 
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.security.Keys;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
 import javax.crypto.SecretKey;
@@ -9,14 +10,23 @@ import java.util.Date;
 
 @Component
 public class JwtUtil {
-    private final String SECRET_KEY_STRING = "EstaEsUnaClaveSecretaMuyLargaParaElProyectoConTacto2026";
-    private final SecretKey key = Keys.hmacShaKeyFor(SECRET_KEY_STRING.getBytes());
+
+    private final SecretKey key;
     private final long EXPIRATION_TIME = 86400000;
 
+    public JwtUtil(@Value("${jwt.secret:EstaEsUnaClaveSecretaMuyLargaParaElProyectoConTacto2026}") String secret) {
+        this.key = Keys.hmacShaKeyFor(secret.getBytes());
+    }
+
     public String generateToken(String email, String rol) {
+        return generateToken(email, rol, null);
+    }
+
+    public String generateToken(String email, String rol, Long userId) {
         return Jwts.builder()
                 .subject(email)
                 .claim("rol", rol)
+                .claim("userId", userId)
                 .issuedAt(new Date())
                 .expiration(new Date(System.currentTimeMillis() + EXPIRATION_TIME))
                 .signWith(key)
@@ -39,6 +49,15 @@ public class JwtUtil {
                 .parseSignedClaims(token)
                 .getPayload()
                 .get("rol", String.class);
+    }
+
+    public Long extractUserId(String token) {
+        return Jwts.parser()
+                .verifyWith(key)
+                .build()
+                .parseSignedClaims(token)
+                .getPayload()
+                .get("userId", Long.class);
     }
 
     public boolean validateToken(String token) {

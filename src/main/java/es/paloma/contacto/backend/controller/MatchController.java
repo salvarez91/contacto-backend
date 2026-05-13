@@ -1,5 +1,8 @@
 package es.paloma.contacto.backend.controller;
 
+import es.paloma.contacto.backend.exception.AccesoNoAutorizadoException;
+import es.paloma.contacto.backend.exception.ConflictoException;
+import es.paloma.contacto.backend.exception.PeticionIncorrectaException;
 import es.paloma.contacto.backend.exception.RecursoNoEncontradoException;
 import es.paloma.contacto.backend.model.Match;
 import es.paloma.contacto.backend.model.Usuario;
@@ -8,12 +11,15 @@ import es.paloma.contacto.backend.repository.MensajeRepository;
 import es.paloma.contacto.backend.repository.UsuarioRepository;
 import es.paloma.contacto.backend.security.JwtUtil;
 import es.paloma.contacto.backend.service.MatchingService;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.security.Principal;
 import java.time.LocalDateTime;
+import java.time.ZoneOffset;
 import java.util.List;
 import java.util.Map;
 
@@ -37,22 +43,36 @@ public class MatchController {
     private JwtUtil jwtUtil;
 
     @PostMapping
+    @Transactional
     public ResponseEntity<Match> createMatch(@RequestBody Map<String, Long> payload,
-                                             @RequestHeader("Authorization") String authHeader) {
-        String token = authHeader.substring(7);
-        String email = jwtUtil.extractEmail(token);
-
-        Usuario mayorAutenticado = usuarioRepository.findByEmail(email)
+                                             Principal principal) {
+        Usuario mayorAutenticado = usuarioRepository.findByEmail(principal.getName())
                 .orElseThrow(() -> new RecursoNoEncontradoException("Usuario no encontrado"));
         Long voluntarioId = payload.get("voluntarioId");
 
-        if (voluntarioId == null) throw new RecursoNoEncontradoException("Falta el ID del voluntario");
+        if (voluntarioId == null) throw new PeticionIncorrectaException("ID de voluntario no proporcionado");
+        if (mayorAutenticado.getId().equals(voluntarioId)) {
+            throw new PeticionIncorrectaException("No puedes crear un match contigo mismo");
+        }
+        if (!"MAYOR".equals(mayorAutenticado.getRol())) {
+            throw new AccesoNoAutorizadoException("Solo los usuarios MAYOR pueden crear conexiones");
+        }
+
+        boolean yaExiste = matchRepository.findByMayorId(mayorAutenticado.getId()).stream()
+                .anyMatch(m -> m.getVoluntario().getId().equals(voluntarioId));
+
+        if (yaExiste) {
+            throw new ConflictoException("Ya tienes una conexión activa con este voluntario");
+        }
 
         Usuario voluntario = usuarioRepository.findById(voluntarioId)
                 .orElseThrow(() -> new RecursoNoEncontradoException("Voluntario no encontrado"));
+        if (!"VOLUNTARIO".equals(voluntario.getRol())) {
+            throw new PeticionIncorrectaException("El usuario destino debe tener rol VOLUNTARIO");
+        }
 
         Match match = new Match();
-        match.setCreatedAt(LocalDateTime.now());
+        match.setCreatedAt(LocalDateTime.now(ZoneOffset.UTC));
         match.setActive(true);
         match.setMayor(mayorAutenticado);
         match.setVoluntario(voluntario);
@@ -63,10 +83,9 @@ public class MatchController {
 
     @GetMapping("/sugerencias")
     public ResponseEntity<List<Usuario>> sugerirVoluntarios(
-            @RequestHeader("Authorization") String authHeader,
+            Principal principal,
             @RequestParam(required = false) String interes) {
-        String email = jwtUtil.extractEmail(authHeader.substring(7));
-        Usuario usuario = usuarioRepository.findByEmail(email)
+        Usuario usuario = usuarioRepository.findByEmail(principal.getName())
                 .orElseThrow(() -> new RecursoNoEncontradoException("Usuario no encontrado"));
 
         if (!"MAYOR".equalsIgnoreCase(usuario.getRol())) {
@@ -78,10 +97,10 @@ public class MatchController {
     }
 
     @DeleteMapping("/{id}")
+    @Transactional
     public ResponseEntity<Void> eliminarMatch(@PathVariable Long id,
-                                              @RequestHeader("Authorization") String authHeader) {
-        String email = jwtUtil.extractEmail(authHeader.substring(7));
-        Usuario usuario = usuarioRepository.findByEmail(email)
+                                              Principal principal) {
+        Usuario usuario = usuarioRepository.findByEmail(principal.getName())
                 .orElseThrow(() -> new RecursoNoEncontradoException("Usuario no encontrado"));
 
         Match match = matchRepository.findById(id)
@@ -90,7 +109,7 @@ public class MatchController {
         if (!"ADMIN".equals(usuario.getRol()) &&
                 !match.getMayor().getId().equals(usuario.getId()) &&
                 !match.getVoluntario().getId().equals(usuario.getId())) {
-            return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
+            throw new AccesoNoAutorizadoException("No tienes permiso para eliminar esta conexión");
         }
 
         mensajeRepository.borrarConversacion(match.getMayor().getId(), match.getVoluntario().getId());

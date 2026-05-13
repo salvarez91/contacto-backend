@@ -2,6 +2,9 @@ package es.paloma.contacto.backend.model;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
+import jakarta.validation.constraints.Email;
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.Size;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
@@ -15,13 +18,20 @@ public class Usuario {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
+    @NotBlank(message = "El nombre es obligatorio")
+    @Size(max = 100)
     @Column(nullable = false, length = 100)
     private String nombre;
 
+    @NotBlank(message = "El email es obligatorio")
+    @Email(message = "Debe ser un email válido")
+    @Size(max = 150)
     @Column(nullable = false, unique = true, length = 150)
     private String email;
 
     @JsonIgnore
+    @NotBlank(message = "La contraseña es obligatoria")
+    @Size(min = 6, message = "La contraseña debe tener al menos 6 caracteres")
     @Column(nullable = false)
     private String password;
 
@@ -40,16 +50,36 @@ public class Usuario {
     @Column(name = "fecha_nacimiento")
     private LocalDate fechaNacimiento;
 
-    @Column(name = "fecha_registro", insertable = false, updatable = false)
+    @Column(name = "fecha_registro", updatable = false)
     private LocalDateTime fechaRegistro;
 
-    @ManyToMany(fetch = FetchType.EAGER)
+    @Column(name = "foto_perfil_key")
+    private String fotoPerfilKey;
+
+    @PrePersist
+    protected void onCreate() {
+        fechaRegistro = LocalDateTime.now();
+    }
+
+    @ManyToMany(fetch = FetchType.LAZY)
     @JoinTable(
             name = "usuario_intereses",
             joinColumns = @JoinColumn(name = "usuario_id"),
             inverseJoinColumns = @JoinColumn(name = "interes_id")
     )
     private Set<Interes> intereses = new HashSet<>();
+
+    @OneToMany(mappedBy = "referido", cascade = CascadeType.ALL, orphanRemoval = true)
+    private Set<Alerta> alertas = new HashSet<>();
+
+    @OneToMany(mappedBy = "usuario", cascade = CascadeType.ALL, orphanRemoval = true)
+    private Set<EstadoAnimo> estadosAnimo = new HashSet<>();
+
+    @OneToMany(mappedBy = "mayor", cascade = CascadeType.ALL, orphanRemoval = true)
+    private Set<Match> matchesComoMayor = new HashSet<>();
+
+    @OneToMany(mappedBy = "voluntario", cascade = CascadeType.ALL, orphanRemoval = true)
+    private Set<Match> matchesComoVoluntario = new HashSet<>();
 
     public Usuario() {
     }
@@ -132,6 +162,14 @@ public class Usuario {
 
     public void setFechaRegistro(LocalDateTime fechaRegistro) {
         this.fechaRegistro = fechaRegistro;
+    }
+
+    public String getFotoPerfilKey() {
+        return fotoPerfilKey;
+    }
+
+    public void setFotoPerfilKey(String fotoPerfilKey) {
+        this.fotoPerfilKey = fotoPerfilKey;
     }
 
     public Set<Interes> getIntereses() {

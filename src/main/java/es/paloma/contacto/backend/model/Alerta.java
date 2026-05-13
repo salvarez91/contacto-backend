@@ -5,9 +5,11 @@ import jakarta.persistence.*;
 import java.time.LocalDateTime;
 
 @Entity
-@Table(name = "alertas")
+@Table(name = "alertas", indexes = {
+        @Index(name = "idx_alerta_vista", columnList = "vista"),
+        @Index(name = "idx_alerta_referido", columnList = "referido_id")
+})
 public class Alerta {
-
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
