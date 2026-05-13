@@ -1,6 +1,10 @@
 package es.paloma.contacto.backend.controller;
 
-import es.paloma.contacto.backend.dto.*;
+import es.paloma.contacto.backend.dto.InteresesRequest;
+import es.paloma.contacto.backend.dto.LoginRequest;
+import es.paloma.contacto.backend.dto.LoginResponse;
+import es.paloma.contacto.backend.dto.RegistroRequest;
+import es.paloma.contacto.backend.dto.RegistroResponse;
 import es.paloma.contacto.backend.exception.AccesoNoAutorizadoException;
 import es.paloma.contacto.backend.exception.ConflictoException;
 import es.paloma.contacto.backend.exception.RecursoNoEncontradoException;
@@ -20,7 +24,6 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
-
 import java.util.HashSet;
 import java.util.Optional;
 import java.util.Set;

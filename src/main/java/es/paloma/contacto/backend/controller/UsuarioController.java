@@ -1,4 +1,4 @@
-﻿package es.paloma.contacto.backend.controller;
+package es.paloma.contacto.backend.controller;
 
 import es.paloma.contacto.backend.aws.GestorObjetosS3;
 import es.paloma.contacto.backend.dto.ActualizarPerfilRequest;
@@ -19,7 +19,6 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.http.ResponseEntity;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.*;
-
 import java.security.Principal;
 import java.time.LocalDate;
 import java.time.format.DateTimeParseException;
