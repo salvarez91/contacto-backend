@@ -11,10 +11,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.messaging.handler.annotation.MessageMapping;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.transaction.annotation.Transactional;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
 import java.security.Principal;
 import java.time.LocalDateTime;
@@ -39,18 +36,46 @@ public class ChatController {
         return mensajeRepository.findConversacion(u1, u2);
     }
 
+    @PostMapping
+    @Transactional
+    public Mensaje enviarMensaje(@RequestBody MensajeDTO mensajeDTO, Principal principal) {
+        if (mensajeDTO == null || mensajeDTO.getReceptorId() == null ||
+                mensajeDTO.getContenido() == null || mensajeDTO.getContenido().trim().isEmpty()) {
+            throw new IllegalArgumentException("Datos del mensaje incompletos");
+        }
+
+        Usuario emisor = usuarioRepository.findByEmail(principal.getName())
+                .orElseThrow(() -> new RecursoNoEncontradoException("Usuario no encontrado"));
+
+        Mensaje mensaje = new Mensaje();
+        mensaje.setEmisorId(emisor.getId());
+        mensaje.setReceptorId(mensajeDTO.getReceptorId());
+        mensaje.setContenido(mensajeDTO.getContenido());
+        mensaje.setFechaEnvio(LocalDateTime.now(ZoneOffset.UTC));
+
+        Mensaje guardado = mensajeRepository.save(mensaje);
+
+        mensajeDTO.setId(guardado.getId());
+        mensajeDTO.setEmisorId(emisor.getId());
+        mensajeDTO.setFechaEnvio(guardado.getFechaEnvio());
+        messagingTemplate.convertAndSend("/topic/messages/" + mensajeDTO.getReceptorId(), mensajeDTO);
+
+        return guardado;
+    }
+
     @MessageMapping("/chat")
     @Transactional
     public void processMessage(MensajeDTO mensajeDTO, Principal principal) {
-        if (mensajeDTO == null || 
-            mensajeDTO.getEmisorId() == null || mensajeDTO.getEmisorId() <= 0 ||
-            mensajeDTO.getReceptorId() == null || mensajeDTO.getReceptorId() <= 0 ||
-            mensajeDTO.getContenido() == null || mensajeDTO.getContenido().trim().isEmpty()) {
+        if (mensajeDTO == null ||
+                mensajeDTO.getEmisorId() == null || mensajeDTO.getEmisorId() <= 0 ||
+                mensajeDTO.getReceptorId() == null || mensajeDTO.getReceptorId() <= 0 ||
+                mensajeDTO.getContenido() == null || mensajeDTO.getContenido().trim().isEmpty()) {
             return;
         }
 
         Usuario emisor = usuarioRepository.findByEmail(principal.getName())
                 .orElseThrow(() -> new RecursoNoEncontradoException("Usuario no encontrado"));
+
         if (!emisor.getId().equals(mensajeDTO.getEmisorId())) {
             throw new AccesoNoAutorizadoException("No puedes enviar mensajes como otro usuario");
         }
