@@ -2,6 +2,7 @@ package es.paloma.contacto.backend.exception;
 
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.AccessDeniedException;
 import org.springframework.validation.FieldError;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
@@ -36,6 +37,11 @@ public class ManejadorGlobalExcepciones {
     @ExceptionHandler(AccesoNoAutorizadoException.class)
     public ResponseEntity<Object> manejarAccesoNoAutorizado(AccesoNoAutorizadoException ex) {
         return crearRespuesta(HttpStatus.UNAUTHORIZED, ex.getMessage());
+    }
+
+    @ExceptionHandler(AccessDeniedException.class)
+    public ResponseEntity<Object> manejarAccesoDenegado(AccessDeniedException ex) {
+        return crearRespuesta(HttpStatus.FORBIDDEN, "No tienes permiso para realizar esta accion");
     }
 
     @ExceptionHandler(ConflictoException.class)

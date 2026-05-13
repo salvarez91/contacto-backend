@@ -7,6 +7,7 @@ import es.paloma.contacto.backend.model.Usuario;
 import es.paloma.contacto.backend.repository.MatchRepository;
 import es.paloma.contacto.backend.repository.UsuarioRepository;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
@@ -36,7 +37,7 @@ public class MatchingService {
                 .map(match -> match.getVoluntario().getId())
                 .collect(Collectors.toSet());
 
-        List<Usuario> voluntariosPosibles = usuarioRepository.findVoluntariosSugeridos(interesesMayorIds);
+        List<Usuario> voluntariosPosibles = usuarioRepository.findVoluntariosSugeridos(interesesMayorIds, PageRequest.of(0, 50)).getContent();
 
         return voluntariosPosibles.stream()
                 .filter(v -> !idsConMatch.contains(v.getId()))
@@ -45,7 +46,6 @@ public class MatchingService {
                     return v.getIntereses().stream()
                             .anyMatch(i -> i != null && i.getNombre() != null && i.getNombre().equalsIgnoreCase(filtroInteres.trim()));
                 })
-                .limit(20)
                 .collect(Collectors.toList());
     }
 

@@ -17,6 +17,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.security.Principal;
 import java.time.LocalDateTime;
 import java.time.ZoneOffset;
 import java.util.List;
@@ -44,15 +45,18 @@ public class MatchController {
     @PostMapping
     @Transactional
     public ResponseEntity<Match> createMatch(@RequestBody Map<String, Long> payload,
-                                             @RequestHeader("Authorization") String authHeader) {
-        String token = authHeader.substring(7);
-        String email = jwtUtil.extractEmail(token);
-
-        Usuario mayorAutenticado = usuarioRepository.findByEmail(email)
+                                             Principal principal) {
+        Usuario mayorAutenticado = usuarioRepository.findByEmail(principal.getName())
                 .orElseThrow(() -> new RecursoNoEncontradoException("Usuario no encontrado"));
         Long voluntarioId = payload.get("voluntarioId");
 
         if (voluntarioId == null) throw new PeticionIncorrectaException("ID de voluntario no proporcionado");
+        if (mayorAutenticado.getId().equals(voluntarioId)) {
+            throw new PeticionIncorrectaException("No puedes crear un match contigo mismo");
+        }
+        if (!"MAYOR".equals(mayorAutenticado.getRol())) {
+            throw new AccesoNoAutorizadoException("Solo los usuarios MAYOR pueden crear conexiones");
+        }
 
         boolean yaExiste = matchRepository.findByMayorId(mayorAutenticado.getId()).stream()
                 .anyMatch(m -> m.getVoluntario().getId().equals(voluntarioId));
@@ -63,6 +67,9 @@ public class MatchController {
 
         Usuario voluntario = usuarioRepository.findById(voluntarioId)
                 .orElseThrow(() -> new RecursoNoEncontradoException("Voluntario no encontrado"));
+        if (!"VOLUNTARIO".equals(voluntario.getRol())) {
+            throw new PeticionIncorrectaException("El usuario destino debe tener rol VOLUNTARIO");
+        }
 
         Match match = new Match();
         match.setCreatedAt(LocalDateTime.now(ZoneOffset.UTC));
@@ -76,10 +83,9 @@ public class MatchController {
 
     @GetMapping("/sugerencias")
     public ResponseEntity<List<Usuario>> sugerirVoluntarios(
-            @RequestHeader("Authorization") String authHeader,
+            Principal principal,
             @RequestParam(required = false) String interes) {
-        String email = jwtUtil.extractEmail(authHeader.substring(7));
-        Usuario usuario = usuarioRepository.findByEmail(email)
+        Usuario usuario = usuarioRepository.findByEmail(principal.getName())
                 .orElseThrow(() -> new RecursoNoEncontradoException("Usuario no encontrado"));
 
         if (!"MAYOR".equalsIgnoreCase(usuario.getRol())) {
@@ -93,9 +99,8 @@ public class MatchController {
     @DeleteMapping("/{id}")
     @Transactional
     public ResponseEntity<Void> eliminarMatch(@PathVariable Long id,
-                                              @RequestHeader("Authorization") String authHeader) {
-        String email = jwtUtil.extractEmail(authHeader.substring(7));
-        Usuario usuario = usuarioRepository.findByEmail(email)
+                                              Principal principal) {
+        Usuario usuario = usuarioRepository.findByEmail(principal.getName())
                 .orElseThrow(() -> new RecursoNoEncontradoException("Usuario no encontrado"));
 
         Match match = matchRepository.findById(id)

@@ -1,6 +1,8 @@
 package es.paloma.contacto.backend.model;
 
 import jakarta.persistence.*;
+import jakarta.validation.constraints.Max;
+import jakarta.validation.constraints.Min;
 
 import java.time.LocalDate;
 
@@ -14,6 +16,8 @@ public class EstadoAnimo {
     private Long id;
 
     @Column(name = "nivel_emocional", nullable = false, columnDefinition = "integer check (nivel_emocional >= 1 and nivel_emocional <= 5)")
+    @Min(1)
+    @Max(5)
     private int nivelEmocional;
 
     @Column(nullable = false)

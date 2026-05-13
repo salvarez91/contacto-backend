@@ -6,9 +6,9 @@ import es.paloma.contacto.backend.dto.ContactoDTO;
 import es.paloma.contacto.backend.exception.PeticionIncorrectaException;
 import es.paloma.contacto.backend.exception.RecursoNoEncontradoException;
 import es.paloma.contacto.backend.model.Usuario;
-import es.paloma.contacto.backend.repository.*;
-import es.paloma.contacto.backend.security.JwtUtil;
+import es.paloma.contacto.backend.repository.UsuarioRepository;
 import es.paloma.contacto.backend.service.MatchingService;
+import es.paloma.contacto.backend.service.UsuarioService;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
@@ -16,8 +16,16 @@ import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.http.ResponseEntity;
 import org.springframework.transaction.annotation.Transactional;
-import org.springframework.web.bind.annotation.*;
+import org.springframework.web.bind.annotation.DeleteMapping;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PutMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.RestController;
 
+import java.security.Principal;
 import java.time.LocalDate;
 import java.time.format.DateTimeParseException;
 import java.util.List;
@@ -28,29 +36,19 @@ import java.util.Map;
 @RequestMapping("/api/usuarios")
 public class UsuarioController {
 
+    private static final long MAX_FOTO_BYTES = 5L * 1024L * 1024L;
+
     @Autowired
     private UsuarioRepository usuarioRepository;
-
-    @Autowired
-    private MensajeRepository mensajeRepository;
-
-    @Autowired
-    private MatchRepository matchRepository;
-
-    @Autowired
-    private AlertaRepository alertaRepository;
-
-    @Autowired
-    private EstadoAnimoRepository estadoAnimoRepository;
 
     @Autowired
     private MatchingService matchingService;
 
     @Autowired
-    private JwtUtil jwtUtil;
+    private GestorObjetosS3 gestorObjetosS3;
 
     @Autowired
-    private GestorObjetosS3 gestorObjetosS3;
+    private UsuarioService usuarioService;
 
     @GetMapping
     public Page<Usuario> obtenerTodos(
@@ -67,41 +65,29 @@ public class UsuarioController {
     @DeleteMapping("/{id}")
     @Transactional
     public ResponseEntity<?> eliminarUsuario(@PathVariable Long id) {
-        Usuario usuario = usuarioRepository.findById(id)
-                .orElseThrow(() -> new RecursoNoEncontradoException("Usuario no existe"));
-        mensajeRepository.borrarTodosLosMensajesDeUsuario(id);
-        alertaRepository.deleteByReferidoId(id);
-        estadoAnimoRepository.deleteByUsuarioId(id);
-        matchRepository.deleteByMayorIdOrVoluntarioId(id, id);
-        usuario.getIntereses().clear();
-        usuarioRepository.save(usuario);
-        usuarioRepository.deleteById(id);
+        usuarioService.eliminarUsuario(id);
         return ResponseEntity.noContent().build();
     }
 
     @GetMapping("/mis-contactos")
-    public ResponseEntity<List<ContactoDTO>> getMisContactos(@RequestHeader("Authorization") String auth) {
-        String email = jwtUtil.extractEmail(auth.substring(7));
-        Usuario usuario = usuarioRepository.findByEmail(email)
+    public ResponseEntity<List<ContactoDTO>> getMisContactos(Principal principal) {
+        Usuario usuario = usuarioRepository.findByEmail(principal.getName())
                 .orElseThrow(() -> new RecursoNoEncontradoException("Usuario no encontrado"));
         return ResponseEntity.ok(matchingService.obtenerMisContactos(usuario.getId()));
     }
 
     @GetMapping("/mi-perfil")
-    public ResponseEntity<Usuario> getMiPerfil(@RequestHeader("Authorization") String auth) {
-        String email = jwtUtil.extractEmail(auth.substring(7));
+    public ResponseEntity<Usuario> getMiPerfil(Principal principal) {
         return ResponseEntity.ok(
-                usuarioRepository.findByEmail(email)
+                usuarioRepository.findByEmail(principal.getName())
                         .orElseThrow(() -> new RecursoNoEncontradoException("Usuario no encontrado"))
         );
     }
 
     @PutMapping("/perfil")
     @Transactional
-    public ResponseEntity<Usuario> actualizarPerfil(@RequestBody ActualizarPerfilRequest datos,
-                                                    @RequestHeader("Authorization") String auth) {
-        String email = jwtUtil.extractEmail(auth.substring(7));
-        Usuario usuario = usuarioRepository.findByEmail(email)
+    public ResponseEntity<Usuario> actualizarPerfil(@RequestBody ActualizarPerfilRequest datos, Principal principal) {
+        Usuario usuario = usuarioRepository.findByEmail(principal.getName())
                 .orElseThrow(() -> new RecursoNoEncontradoException("Usuario no encontrado"));
         if (datos.getNombre() != null) usuario.setNombre(datos.getNombre());
         if (datos.getDescripcion() != null) usuario.setDescripcion(datos.getDescripcion());
@@ -110,17 +96,21 @@ public class UsuarioController {
             try {
                 usuario.setFechaNacimiento(LocalDate.parse(datos.getFechaNacimiento()));
             } catch (DateTimeParseException e) {
-                throw new PeticionIncorrectaException("Formato de fecha inválido");
+                throw new PeticionIncorrectaException("Formato de fecha invalido");
             }
         }
         return ResponseEntity.ok(usuarioRepository.save(usuario));
     }
 
     @GetMapping("/upload-url-foto")
-    public ResponseEntity<Map<String, String>> getUploadUrl(@RequestHeader("Authorization") String auth,
-                                                            @RequestParam(required = false) String extension) {
-        String email = jwtUtil.extractEmail(auth.substring(7));
-        Usuario usuario = usuarioRepository.findByEmail(email)
+    public ResponseEntity<Map<String, String>> getUploadUrl(Principal principal,
+                                                            @RequestParam(required = false) String extension,
+                                                            @RequestParam(required = false) Long sizeBytes) {
+        if (sizeBytes != null && sizeBytes > MAX_FOTO_BYTES) {
+            throw new PeticionIncorrectaException("La imagen no puede superar 5 MB");
+        }
+
+        Usuario usuario = usuarioRepository.findByEmail(principal.getName())
                 .orElseThrow(() -> new RecursoNoEncontradoException("Usuario no encontrado"));
 
         String ext = (extension != null && !extension.isBlank()) ? extension : "jpg";
@@ -132,14 +122,14 @@ public class UsuarioController {
 
         return ResponseEntity.ok(Map.of(
                 "uploadUrl", uploadUrl,
-                "key", key
+                "key", key,
+                "maxBytes", String.valueOf(MAX_FOTO_BYTES)
         ));
     }
 
     @GetMapping("/read-url-foto")
-    public ResponseEntity<Map<String, String>> getReadUrl(@RequestHeader("Authorization") String auth) {
-        String email = jwtUtil.extractEmail(auth.substring(7));
-        Usuario usuario = usuarioRepository.findByEmail(email)
+    public ResponseEntity<Map<String, String>> getReadUrl(Principal principal) {
+        Usuario usuario = usuarioRepository.findByEmail(principal.getName())
                 .orElseThrow(() -> new RecursoNoEncontradoException("Usuario no encontrado"));
 
         if (usuario.getFotoPerfilKey() == null || usuario.getFotoPerfilKey().isBlank()) {

@@ -1,8 +1,11 @@
 package es.paloma.contacto.backend.aws;
 
 import es.paloma.contacto.backend.exception.PeticionIncorrectaException;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
+import software.amazon.awssdk.services.s3.S3Client;
+import software.amazon.awssdk.services.s3.model.DeleteObjectRequest;
 import software.amazon.awssdk.services.s3.model.GetObjectRequest;
 import software.amazon.awssdk.services.s3.model.PutObjectRequest;
 import software.amazon.awssdk.services.s3.presigner.S3Presigner;
@@ -14,16 +17,19 @@ import java.util.Locale;
 import java.util.Set;
 import java.util.UUID;
 
+@Slf4j
 @Service
 public class GestorObjetosS3 {
 
     private static final Set<String> EXTENSIONES_PERMITIDAS = Set.of("jpg", "jpeg", "png", "webp");
 
+    private final S3Client s3Client;
     private final S3Presigner s3Presigner;
     private final String bucketName;
 
-    public GestorObjetosS3(S3Presigner s3Presigner,
+    public GestorObjetosS3(S3Client s3Client, S3Presigner s3Presigner,
                            @Value("${aws.s3.bucket}") String bucketName) {
+        this.s3Client = s3Client;
         this.s3Presigner = s3Presigner;
         this.bucketName = bucketName;
     }
@@ -66,6 +72,23 @@ public class GestorObjetosS3 {
         return this.s3Presigner.presignGetObject(presignRequest).url().toString();
     }
 
+    public void eliminarObjeto(String key) {
+        if (key == null || key.isBlank()) {
+            log.warn("Intento de eliminar objeto con clave nula o vacia");
+            return;
+        }
+
+        DeleteObjectRequest deleteObjectRequest = DeleteObjectRequest.builder()
+                .bucket(bucketName)
+                .key(key)
+                .build();
+
+        this.s3Client.deleteObject(deleteObjectRequest);
+    }
+
+    /**
+     * Normaliza la extension recibida desde cliente y rechaza tipos no permitidos.
+     */
     private String normalizarExtension(String extensionOriginal) {
         String extension = (extensionOriginal == null || extensionOriginal.isBlank()) ? "jpg" : extensionOriginal;
         extension = extension.trim().toLowerCase(Locale.ROOT);
@@ -78,8 +101,15 @@ public class GestorObjetosS3 {
         return extension;
     }
 
+    /**
+     * Deriva el Content-Type de una clave S3 validando que tenga extension segura.
+     */
     private String obtenerContentType(String key) {
-        String extension = normalizarExtension(key.substring(key.lastIndexOf('.') + 1));
+        int indicePunto = key == null ? -1 : key.lastIndexOf('.');
+        if (indicePunto < 0 || indicePunto == key.length() - 1) {
+            throw new PeticionIncorrectaException("La clave de imagen no tiene extension valida");
+        }
+        String extension = normalizarExtension(key.substring(indicePunto + 1));
         return switch (extension) {
             case "png" -> "image/png";
             case "webp" -> "image/webp";

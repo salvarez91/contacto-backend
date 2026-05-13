@@ -8,7 +8,6 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
-import java.util.List;
 import java.util.Optional;
 import java.util.Set;
 
@@ -20,5 +19,5 @@ public interface UsuarioRepository extends JpaRepository<Usuario, Long> {
     Page<Usuario> findByEmailNot(String email, Pageable pageable);
 
     @Query("SELECT DISTINCT u FROM Usuario u JOIN u.intereses i WHERE i.id IN :interesesIds")
-    List<Usuario> findVoluntariosSugeridos(@Param("interesesIds") Set<Long> interesesIds);
+    Page<Usuario> findVoluntariosSugeridos(@Param("interesesIds") Set<Long> interesesIds, Pageable pageable);
 }

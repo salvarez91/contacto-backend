@@ -51,7 +51,7 @@ public class AuthController {
             throw new AccesoNoAutorizadoException("Email o contraseña incorrectos");
         }
 
-        String token = jwtUtil.generateToken(usuario.getEmail(), usuario.getRol());
+        String token = jwtUtil.generateToken(usuario.getEmail(), usuario.getRol(), usuario.getId());
         return ResponseEntity.ok(new LoginResponse(
                 token,
                 String.valueOf(usuario.getId()),

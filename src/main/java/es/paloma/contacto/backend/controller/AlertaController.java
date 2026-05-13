@@ -6,11 +6,11 @@ import es.paloma.contacto.backend.model.Alerta;
 import es.paloma.contacto.backend.model.Usuario;
 import es.paloma.contacto.backend.repository.AlertaRepository;
 import es.paloma.contacto.backend.repository.UsuarioRepository;
-import es.paloma.contacto.backend.security.JwtUtil;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -25,18 +25,14 @@ public class AlertaController {
     @Autowired
     private UsuarioRepository usuarioRepository;
 
-    @Autowired
-    private JwtUtil jwtUtil;
-
     @GetMapping("/usuario/{usuarioId}")
-    public List<Alerta> getAlertasByUsuarioId(@PathVariable Long usuarioId, @RequestHeader("Authorization") String authHeader) {
-        String emailToken = jwtUtil.extractEmail(authHeader.substring(7));
-        String rolToken = jwtUtil.extractRol(authHeader.substring(7));
-
+    public List<Alerta> getAlertasByUsuarioId(@PathVariable Long usuarioId, Authentication auth) {
         Usuario u = usuarioRepository.findById(usuarioId)
                 .orElseThrow(() -> new RecursoNoEncontradoException("Usuario no encontrado"));
 
-        if (!"ADMIN".equals(rolToken) && !u.getEmail().equals(emailToken)) {
+        boolean admin = auth.getAuthorities().stream()
+                .anyMatch(a -> "ROLE_ADMIN".equals(a.getAuthority()));
+        if (!admin && !u.getEmail().equals(auth.getName())) {
             throw new AccesoNoAutorizadoException("No tienes permiso para ver las alertas de este usuario");
         }
 

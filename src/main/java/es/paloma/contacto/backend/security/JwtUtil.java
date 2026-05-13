@@ -19,9 +19,14 @@ public class JwtUtil {
     }
 
     public String generateToken(String email, String rol) {
+        return generateToken(email, rol, null);
+    }
+
+    public String generateToken(String email, String rol, Long userId) {
         return Jwts.builder()
                 .subject(email)
                 .claim("rol", rol)
+                .claim("userId", userId)
                 .issuedAt(new Date())
                 .expiration(new Date(System.currentTimeMillis() + EXPIRATION_TIME))
                 .signWith(key)
@@ -44,6 +49,15 @@ public class JwtUtil {
                 .parseSignedClaims(token)
                 .getPayload()
                 .get("rol", String.class);
+    }
+
+    public Long extractUserId(String token) {
+        return Jwts.parser()
+                .verifyWith(key)
+                .build()
+                .parseSignedClaims(token)
+                .getPayload()
+                .get("userId", Long.class);
     }
 
     public boolean validateToken(String token) {
