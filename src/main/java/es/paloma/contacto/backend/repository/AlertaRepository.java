@@ -1,9 +1,9 @@
 package es.paloma.contacto.backend.repository;
 
 import es.paloma.contacto.backend.model.Alerta;
-import org.springframework.transaction.annotation.Transactional;
 import org.springframework.data.jpa.repository.JpaRepository;
 
+import java.time.LocalDateTime;
 import java.util.List;
 
 public interface AlertaRepository extends JpaRepository<Alerta, Long> {
@@ -11,6 +11,7 @@ public interface AlertaRepository extends JpaRepository<Alerta, Long> {
 
     List<Alerta> findByVistaFalse();
 
-    @Transactional
     void deleteByReferidoId(Long referidoId);
+
+    boolean existsByReferidoIdAndDescripcionAndFechaCreacionAfter(Long referidoId, String descripcion, LocalDateTime fecha);
 }

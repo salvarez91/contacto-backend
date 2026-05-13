@@ -10,6 +10,7 @@ import es.paloma.contacto.backend.repository.AlertaRepository;
 import es.paloma.contacto.backend.repository.EstadoAnimoRepository;
 import es.paloma.contacto.backend.repository.UsuarioRepository;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -37,10 +38,10 @@ public class EstadoAnimoService {
         }
 
         Usuario usuario = usuarioRepository.findById(estado.getUsuario().getId())
-                .orElseThrow(() -> new PeticionIncorrectaException("Usuario invalido"));
+                .orElseThrow(() -> new PeticionIncorrectaException("Usuario inválido"));
 
         if (!usuario.getEmail().equals(email)) {
-            throw new AccesoNoAutorizadoException("No puedes registrar estados de animo para otro usuario");
+            throw new AccesoNoAutorizadoException("No puedes registrar estados de ánimo para otro usuario");
         }
 
         LocalDate hoy = LocalDate.now(ZoneOffset.UTC);
@@ -51,7 +52,9 @@ public class EstadoAnimoService {
         estado.setUsuario(usuario);
         estado.setFecha(hoy);
         EstadoAnimo nuevo = estadoAnimoRepository.save(estado);
-        crearAlertaSiHayTresEstadosTristes(nuevo);
+
+        verificarRachaTristeza(usuario);
+
         return nuevo;
     }
 
@@ -66,21 +69,33 @@ public class EstadoAnimoService {
         return estadoAnimoRepository.existsByUsuarioIdAndFecha(usuarioId, LocalDate.now(ZoneOffset.UTC));
     }
 
-    private void crearAlertaSiHayTresEstadosTristes(EstadoAnimo nuevo) {
-        if (nuevo.getNivelEmocional() != 1) {
-            return;
-        }
+    private void verificarRachaTristeza(Usuario usuario) {
+        List<EstadoAnimo> ultimos = estadoAnimoRepository.findByUsuarioIdOrderByFechaDesc(
+                usuario.getId(), PageRequest.of(0, 3));
 
-        List<EstadoAnimo> ultimos = estadoAnimoRepository.findByUsuarioIdOrderByFechaDesc(nuevo.getUsuario().getId());
-        if (ultimos.size() < 3 || ultimos.stream().limit(3).anyMatch(e -> e.getNivelEmocional() != 1)) {
-            return;
-        }
+        if (ultimos.size() == 3) {
+            boolean rachaTriste = ultimos.stream().allMatch(e -> e.getNivelEmocional() == 1);
 
-        Alerta alerta = new Alerta();
-        alerta.setDescripcion("El usuario " + nuevo.getUsuario().getNombre() + " ha registrado 3 estados tristes consecutivos.");
-        alerta.setReferido(nuevo.getUsuario());
-        alerta.setFechaCreacion(LocalDateTime.now(ZoneOffset.UTC));
-        alerta.setVista(false);
-        alertaRepository.save(alerta);
+            if (rachaTriste) {
+                crearAlertaTristeza(usuario);
+            }
+        }
+    }
+
+    private void crearAlertaTristeza(Usuario usuario) {
+        String desc = "El usuario " + usuario.getNombre() + " ha registrado 3 estados tristes consecutivos.";
+        LocalDateTime hace24Horas = LocalDateTime.now(ZoneOffset.UTC).minusDays(1);
+
+        boolean yaAlertado = alertaRepository.existsByReferidoIdAndDescripcionAndFechaCreacionAfter(
+                usuario.getId(), desc, hace24Horas);
+
+        if (!yaAlertado) {
+            Alerta alerta = new Alerta();
+            alerta.setReferido(usuario);
+            alerta.setDescripcion(desc);
+            alerta.setFechaCreacion(LocalDateTime.now(ZoneOffset.UTC));
+            alerta.setVista(false);
+            alertaRepository.save(alerta);
+        }
     }
 }

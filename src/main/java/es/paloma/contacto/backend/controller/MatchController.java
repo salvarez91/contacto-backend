@@ -9,12 +9,11 @@ import es.paloma.contacto.backend.model.Usuario;
 import es.paloma.contacto.backend.repository.MatchRepository;
 import es.paloma.contacto.backend.repository.MensajeRepository;
 import es.paloma.contacto.backend.repository.UsuarioRepository;
-import es.paloma.contacto.backend.security.JwtUtil;
 import es.paloma.contacto.backend.service.MatchingService;
-import org.springframework.transaction.annotation.Transactional;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.*;
 
 import java.security.Principal;
@@ -39,13 +38,9 @@ public class MatchController {
     @Autowired
     private MensajeRepository mensajeRepository;
 
-    @Autowired
-    private JwtUtil jwtUtil;
-
     @PostMapping
     @Transactional
-    public ResponseEntity<Match> createMatch(@RequestBody Map<String, Long> payload,
-                                             Principal principal) {
+    public ResponseEntity<Match> createMatch(@RequestBody Map<String, Long> payload, Principal principal) {
         Usuario mayorAutenticado = usuarioRepository.findByEmail(principal.getName())
                 .orElseThrow(() -> new RecursoNoEncontradoException("Usuario no encontrado"));
         Long voluntarioId = payload.get("voluntarioId");
@@ -62,7 +57,7 @@ public class MatchController {
                 .anyMatch(m -> m.getVoluntario().getId().equals(voluntarioId));
 
         if (yaExiste) {
-            throw new ConflictoException("Ya tienes una conexiÃ³n activa con este voluntario");
+            throw new ConflictoException("Ya tienes una conexión activa con este voluntario");
         }
 
         Usuario voluntario = usuarioRepository.findById(voluntarioId)
@@ -77,14 +72,11 @@ public class MatchController {
         match.setMayor(mayorAutenticado);
         match.setVoluntario(voluntario);
 
-        Match nuevoMatch = matchRepository.save(match);
-        return ResponseEntity.status(HttpStatus.CREATED).body(nuevoMatch);
+        return ResponseEntity.status(HttpStatus.CREATED).body(matchRepository.save(match));
     }
 
     @GetMapping("/sugerencias")
-    public ResponseEntity<List<Usuario>> sugerirVoluntarios(
-            Principal principal,
-            @RequestParam(required = false) String interes) {
+    public ResponseEntity<List<Usuario>> sugerirVoluntarios(Principal principal, @RequestParam(required = false) String interes) {
         Usuario usuario = usuarioRepository.findByEmail(principal.getName())
                 .orElseThrow(() -> new RecursoNoEncontradoException("Usuario no encontrado"));
 
@@ -92,14 +84,12 @@ public class MatchController {
             return ResponseEntity.ok(List.of());
         }
 
-        List<Usuario> sugerencias = matchingService.sugerirVoluntarios(usuario.getId(), interes);
-        return ResponseEntity.ok(sugerencias);
+        return ResponseEntity.ok(matchingService.sugerirVoluntarios(usuario.getId(), interes));
     }
 
     @DeleteMapping("/{id}")
     @Transactional
-    public ResponseEntity<Void> eliminarMatch(@PathVariable Long id,
-                                              Principal principal) {
+    public ResponseEntity<Void> eliminarMatch(@PathVariable Long id, Principal principal) {
         Usuario usuario = usuarioRepository.findByEmail(principal.getName())
                 .orElseThrow(() -> new RecursoNoEncontradoException("Usuario no encontrado"));
 
@@ -109,11 +99,10 @@ public class MatchController {
         if (!"ADMIN".equals(usuario.getRol()) &&
                 !match.getMayor().getId().equals(usuario.getId()) &&
                 !match.getVoluntario().getId().equals(usuario.getId())) {
-            throw new AccesoNoAutorizadoException("No tienes permiso para eliminar esta conexiÃ³n");
+            throw new AccesoNoAutorizadoException("No tienes permiso para eliminar esta conexión");
         }
 
         mensajeRepository.borrarConversacion(match.getMayor().getId(), match.getVoluntario().getId());
-
         matchRepository.delete(match);
         return ResponseEntity.noContent().build();
     }
