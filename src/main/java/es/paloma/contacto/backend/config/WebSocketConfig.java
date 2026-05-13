@@ -1,7 +1,8 @@
 package es.paloma.contacto.backend.config;
 
 import es.paloma.contacto.backend.security.JwtUtil;
-import lombok.extern.slf4j.Slf4j;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.core.Ordered;
@@ -23,13 +24,13 @@ import org.springframework.web.socket.config.annotation.WebSocketMessageBrokerCo
 
 import java.security.Principal;
 import java.util.Collections;
-import java.util.List;
 
 @Configuration
 @EnableWebSocketMessageBroker
 @Order(Ordered.HIGHEST_PRECEDENCE + 99)
-@Slf4j
 public class WebSocketConfig implements WebSocketMessageBrokerConfigurer {
+
+    private static final Logger log = LoggerFactory.getLogger(WebSocketConfig.class);
 
     @Autowired
     private JwtUtil jwtUtil;
@@ -73,7 +74,6 @@ public class WebSocketConfig implements WebSocketMessageBrokerConfigurer {
             log.warn("Conexion WebSocket rechazada: token invalido");
             throw new AccessDeniedException("Token WebSocket invalido");
         }
-
         String email = jwtUtil.extractEmail(token);
         String rol = jwtUtil.extractRol(token);
         Long userId = jwtUtil.extractUserId(token);
@@ -94,7 +94,6 @@ public class WebSocketConfig implements WebSocketMessageBrokerConfigurer {
         if (authorization != null && authorization.startsWith("Bearer ")) {
             return authorization.substring(7);
         }
-
         return accessor.getFirstNativeHeader("token");
     }
 
@@ -107,7 +106,6 @@ public class WebSocketConfig implements WebSocketMessageBrokerConfigurer {
         if (!destino.startsWith("/topic/messages/") && !destino.startsWith("/topic/errors/")) {
             return;
         }
-
         Long usuarioIdDestino = extraerIdDestino(destino);
         Long usuarioIdToken = obtenerUserId(principal);
         if (!usuarioIdToken.equals(usuarioIdDestino)) {
