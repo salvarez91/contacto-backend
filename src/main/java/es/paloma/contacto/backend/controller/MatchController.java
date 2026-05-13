@@ -1,5 +1,6 @@
 package es.paloma.contacto.backend.controller;
 
+import es.paloma.contacto.backend.dto.MatchAdminDTO;
 import es.paloma.contacto.backend.dto.UsuarioPerfilDTO;
 import es.paloma.contacto.backend.exception.AccesoNoAutorizadoException;
 import es.paloma.contacto.backend.exception.ConflictoException;
@@ -41,7 +42,7 @@ public class MatchController {
 
     @PostMapping
     @Transactional
-    public ResponseEntity<Match> createMatch(@RequestBody Map<String, Long> payload, Principal principal) {
+    public ResponseEntity<MatchAdminDTO> createMatch(@RequestBody Map<String, Long> payload, Principal principal) {
         Usuario mayorAutenticado = usuarioRepository.findByEmail(principal.getName())
                 .orElseThrow(() -> new RecursoNoEncontradoException("Usuario no encontrado"));
         Long voluntarioId = payload.get("voluntarioId");
@@ -73,7 +74,17 @@ public class MatchController {
         match.setMayor(mayorAutenticado);
         match.setVoluntario(voluntario);
 
-        return ResponseEntity.status(HttpStatus.CREATED).body(matchRepository.save(match));
+        Match guardado = matchRepository.save(match);
+
+        MatchAdminDTO responseDTO = new MatchAdminDTO(
+                guardado.getId(),
+                guardado.getMayor().getNombre(),
+                guardado.getVoluntario().getNombre(),
+                guardado.getCreatedAt().toString(),
+                guardado.isActive()
+        );
+
+        return ResponseEntity.status(HttpStatus.CREATED).body(responseDTO);
     }
 
     @GetMapping("/sugerencias")
