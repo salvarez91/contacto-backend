@@ -6,11 +6,13 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
+import org.springframework.stereotype.Repository;
 
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
 
+@Repository
 public interface UsuarioRepository extends JpaRepository<Usuario, Long> {
 
     Optional<Usuario> findByEmail(String email);
@@ -20,10 +22,10 @@ public interface UsuarioRepository extends JpaRepository<Usuario, Long> {
     Page<Usuario> findByEmailNot(String email, Pageable pageable);
 
     @Query("""
-                SELECT u FROM Usuario u
+                SELECT DISTINCT u
+                FROM Usuario u
                 JOIN u.intereses i
                 WHERE i.id IN :interesesIds
-                GROUP BY u
             """)
     List<Usuario> findVoluntariosSugeridos(@Param("interesesIds") Set<Long> interesesIds);
 }

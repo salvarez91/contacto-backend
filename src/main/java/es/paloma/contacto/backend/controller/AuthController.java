@@ -21,7 +21,6 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.util.HashSet;
-import java.util.Optional;
 import java.util.Set;
 
 @Slf4j
@@ -44,25 +43,21 @@ public class AuthController {
     @PostMapping("/login")
     public ResponseEntity<LoginResponse> login(@Valid @RequestBody LoginRequest request) {
         String email = request.getEmail().trim().toLowerCase();
-        String password = request.getPassword();
-
         Usuario usuario = usuarioRepository.findByEmail(email)
                 .orElseThrow(() -> new AccesoNoAutorizadoException("Email o contraseña incorrectos"));
 
-        if (!passwordEncoder.matches(password, usuario.getPassword())) {
+        if (!passwordEncoder.matches(request.getPassword(), usuario.getPassword())) {
             throw new AccesoNoAutorizadoException("Email o contraseña incorrectos");
         }
 
         String token = jwtUtil.generateToken(usuario.getEmail(), usuario.getRol());
-        LoginResponse response = new LoginResponse(token, String.valueOf(usuario.getId()), usuario.getRol(), usuario.getEmail());
-        return ResponseEntity.ok(response);
+        return ResponseEntity.ok(new LoginResponse(token, String.valueOf(usuario.getId()), usuario.getRol(), usuario.getEmail()));
     }
 
     @Transactional
     @PostMapping("/registro")
     public ResponseEntity<RegistroResponse> registrar(@Valid @RequestBody RegistroRequest request) {
         String email = request.getEmail().trim().toLowerCase();
-
         if (usuarioRepository.findByEmail(email).isPresent()) {
             throw new ConflictoException("El email ya está registrado");
         }
@@ -74,36 +69,29 @@ public class AuthController {
         nuevo.setRol(determinarRol(request.getRol()));
 
         usuarioRepository.save(nuevo);
-        log.info("Nuevo usuario registrado: {}", email);
+        log.info("Usuario registrado: {}", email);
         return ResponseEntity.ok(new RegistroResponse("Usuario creado con éxito"));
-    }
-
-    private String determinarRol(String rolSolicitado) {
-        if (rolSolicitado == null) return "MAYOR";
-        String rol = rolSolicitado.toUpperCase();
-        if ("ADMIN".equals(rol)) return "MAYOR";
-        if ("VOLUNTARIO".equals(rol)) return "VOLUNTARIO";
-        return "MAYOR";
     }
 
     @Transactional
     @PostMapping("/intereses")
     public ResponseEntity<RegistroResponse> guardarIntereses(@Valid @RequestBody InteresesRequest request) {
-        String email = request.getEmail().trim().toLowerCase();
-
-        Usuario usuario = usuarioRepository.findByEmail(email)
+        Usuario usuario = usuarioRepository.findByEmail(request.getEmail().trim().toLowerCase())
                 .orElseThrow(() -> new RecursoNoEncontradoException("Usuario no encontrado"));
 
         Set<Interes> intereses = new HashSet<>();
         if (request.getIntereses() != null) {
-            for (String nombre : request.getIntereses()) {
-                Optional<Interes> interesOpt = interesRepository.findByNombre(nombre);
-                interesOpt.ifPresent(intereses::add);
-            }
+            request.getIntereses().forEach(nombre ->
+                    interesRepository.findByNombre(nombre).ifPresent(intereses::add)
+            );
         }
         usuario.setIntereses(intereses);
         usuarioRepository.save(usuario);
-        log.info("Intereses guardados para usuario: {}", email);
         return ResponseEntity.ok(new RegistroResponse("Intereses guardados con éxito"));
+    }
+
+    private String determinarRol(String rol) {
+        if (rol == null || "ADMIN".equalsIgnoreCase(rol)) return "MAYOR";
+        return rol.toUpperCase();
     }
 }
