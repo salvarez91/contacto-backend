@@ -8,7 +8,6 @@ import es.paloma.contacto.backend.model.Usuario;
 import es.paloma.contacto.backend.repository.MatchRepository;
 import es.paloma.contacto.backend.repository.UsuarioRepository;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -30,19 +29,16 @@ public class MatchingService {
         Usuario mayor = usuarioRepository.findById(mayorId)
                 .orElseThrow(() -> new RuntimeException("Usuario no encontrado"));
 
-        Set<Long> interesesMayorIds = mayor.getIntereses().stream()
-                .filter(i -> i != null && i.getId() != null)
-                .map(Interes::getId)
-                .collect(Collectors.toSet());
-
         Set<Long> idsConMatch = matchRepository.findByMayorId(mayorId).stream()
                 .filter(Match::isActive)
                 .map(match -> match.getVoluntario().getId())
                 .collect(Collectors.toSet());
 
-        List<Usuario> voluntariosPosibles = usuarioRepository.findVoluntariosSugeridos(interesesMayorIds, PageRequest.of(0, 50)).getContent();
+        List<Usuario> todosLosVoluntarios = usuarioRepository.findAll().stream()
+                .filter(u -> "VOLUNTARIO".equalsIgnoreCase(u.getRol()))
+                .collect(Collectors.toList());
 
-        return voluntariosPosibles.stream()
+        return todosLosVoluntarios.stream()
                 .filter(v -> !idsConMatch.contains(v.getId()))
                 .filter(v -> {
                     if (filtroInteres == null || filtroInteres.isBlank()) return true;
