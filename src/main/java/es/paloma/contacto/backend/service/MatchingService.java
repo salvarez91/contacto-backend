@@ -1,6 +1,7 @@
 package es.paloma.contacto.backend.service;
 
 import es.paloma.contacto.backend.dto.ContactoDTO;
+import es.paloma.contacto.backend.dto.UsuarioPerfilDTO;
 import es.paloma.contacto.backend.model.Interes;
 import es.paloma.contacto.backend.model.Match;
 import es.paloma.contacto.backend.model.Usuario;
@@ -9,6 +10,7 @@ import es.paloma.contacto.backend.repository.UsuarioRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 import java.util.Set;
@@ -23,7 +25,8 @@ public class MatchingService {
     @Autowired
     private MatchRepository matchRepository;
 
-    public List<Usuario> sugerirVoluntarios(Long mayorId, String filtroInteres) {
+    @Transactional(readOnly = true)
+    public List<UsuarioPerfilDTO> sugerirVoluntarios(Long mayorId, String filtroInteres) {
         Usuario mayor = usuarioRepository.findById(mayorId)
                 .orElseThrow(() -> new RuntimeException("Usuario no encontrado"));
 
@@ -46,6 +49,17 @@ public class MatchingService {
                     return v.getIntereses().stream()
                             .anyMatch(i -> i != null && i.getNombre() != null && i.getNombre().equalsIgnoreCase(filtroInteres.trim()));
                 })
+                .map(v -> new UsuarioPerfilDTO(
+                        v.getId(),
+                        v.getNombre(),
+                        v.getEmail(),
+                        v.getPuebloCiudad(),
+                        v.getDescripcion(),
+                        v.getFotoPerfilKey(),
+                        v.getIntereses().stream()
+                                .map(Interes::getNombre)
+                                .collect(Collectors.toList())
+                ))
                 .collect(Collectors.toList());
     }
 
