@@ -1,30 +1,18 @@
-package es.paloma.contacto.backend.model;
+package es.paloma.contacto.backend.dto;
 
-import com.fasterxml.jackson.annotation.JsonProperty;
-import jakarta.persistence.*;
-
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import java.time.LocalDateTime;
-import java.time.ZoneOffset;
 
-@Entity
-@Table(name = "mensajes", indexes = {
-        @Index(name = "idx_mensaje_emisor_receptor", columnList = "emisor_id, receptor_id")
-})
-public class Mensaje {
-    @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
+@JsonIgnoreProperties(ignoreUnknown = true)
+public class MensajeDTO {
     private Long id;
-
-    @JsonProperty("emisorId")
-    @Column(name = "emisor_id")
     private Long emisorId;
-
-    @JsonProperty("receptorId")
-    @Column(name = "receptor_id")
     private Long receptorId;
-
     private String contenido;
-    private LocalDateTime fechaEnvio = LocalDateTime.now(ZoneOffset.UTC);
+    private LocalDateTime fechaEnvio;
+
+    public MensajeDTO() {
+    }
 
     public Long getId() {
         return id;

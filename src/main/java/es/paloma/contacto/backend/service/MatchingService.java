@@ -1,5 +1,7 @@
 package es.paloma.contacto.backend.service;
 
+import es.paloma.contacto.backend.dto.ContactoDTO;
+import es.paloma.contacto.backend.dto.UsuarioPerfilDTO;
 import es.paloma.contacto.backend.model.Interes;
 import es.paloma.contacto.backend.model.Match;
 import es.paloma.contacto.backend.model.Usuario;
@@ -7,6 +9,7 @@ import es.paloma.contacto.backend.repository.MatchRepository;
 import es.paloma.contacto.backend.repository.UsuarioRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 import java.util.Set;
@@ -21,41 +24,59 @@ public class MatchingService {
     @Autowired
     private MatchRepository matchRepository;
 
-    public List<Usuario> obtenerMisContactos(Long usuarioId) {
-        Usuario usuario = usuarioRepository.findById(usuarioId)
-                .orElseThrow(() -> new RuntimeException("Usuario no encontrado"));
-
-        if ("MAYOR".equalsIgnoreCase(usuario.getRol())) {
-            return matchRepository.findByMayorId(usuarioId).stream()
-                    .filter(Match::isActive)
-                    .map(Match::getVoluntario)
-                    .collect(Collectors.toList());
-        } else {
-            return matchRepository.findByVoluntarioId(usuarioId).stream()
-                    .filter(Match::isActive)
-                    .map(Match::getMayor)
-                    .collect(Collectors.toList());
-        }
-    }
-
-    public List<Usuario> sugerirVoluntarios(Long mayorId) {
+    @Transactional(readOnly = true)
+    public List<UsuarioPerfilDTO> sugerirVoluntarios(Long mayorId, String filtroInteres) {
         Usuario mayor = usuarioRepository.findById(mayorId)
                 .orElseThrow(() -> new RuntimeException("Usuario no encontrado"));
-
-        Set<Long> interesesMayorIds = mayor.getIntereses().stream()
-                .map(Interes::getId)
-                .collect(Collectors.toSet());
 
         Set<Long> idsConMatch = matchRepository.findByMayorId(mayorId).stream()
                 .filter(Match::isActive)
                 .map(match -> match.getVoluntario().getId())
                 .collect(Collectors.toSet());
 
-        return usuarioRepository.findAll().stream()
-                .filter(u -> "VOLUNTARIO".equals(u.getRol()))
-                .filter(v -> v.getIntereses().stream()
-                        .anyMatch(i -> interesesMayorIds.contains(i.getId())))
+        List<Usuario> todosLosVoluntarios = usuarioRepository.findAll().stream()
+                .filter(u -> "VOLUNTARIO".equalsIgnoreCase(u.getRol()))
+                .collect(Collectors.toList());
+
+        return todosLosVoluntarios.stream()
                 .filter(v -> !idsConMatch.contains(v.getId()))
+                .filter(v -> {
+                    if (filtroInteres == null || filtroInteres.isBlank()) return true;
+                    return v.getIntereses().stream()
+                            .anyMatch(i -> i != null && i.getNombre() != null && i.getNombre().equalsIgnoreCase(filtroInteres.trim()));
+                })
+                .map(v -> new UsuarioPerfilDTO(
+                        v.getId(),
+                        v.getNombre(),
+                        v.getEmail(),
+                        v.getPuebloCiudad(),
+                        v.getDescripcion(),
+                        v.getFotoPerfilKey(),
+                        v.getIntereses().stream()
+                                .map(Interes::getNombre)
+                                .collect(Collectors.toList())
+                ))
+                .collect(Collectors.toList());
+    }
+
+    public List<ContactoDTO> obtenerMisContactos(Long usuarioId) {
+        Usuario usuario = usuarioRepository.findById(usuarioId)
+                .orElseThrow(() -> new RuntimeException("Usuario no encontrado"));
+
+        List<Match> matches;
+        if ("MAYOR".equalsIgnoreCase(usuario.getRol())) {
+            matches = matchRepository.findByMayorId(usuarioId);
+        } else {
+            matches = matchRepository.findByVoluntarioId(usuarioId);
+        }
+
+        return matches.stream()
+                .filter(Match::isActive)
+                .map(match -> {
+                    Usuario contacto = "MAYOR".equalsIgnoreCase(usuario.getRol()) ?
+                            match.getVoluntario() : match.getMayor();
+                    return new ContactoDTO(match, contacto);
+                })
                 .collect(Collectors.toList());
     }
 }

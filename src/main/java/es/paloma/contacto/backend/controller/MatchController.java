@@ -1,17 +1,26 @@
 package es.paloma.contacto.backend.controller;
 
+import es.paloma.contacto.backend.dto.MatchAdminDTO;
+import es.paloma.contacto.backend.dto.UsuarioPerfilDTO;
+import es.paloma.contacto.backend.exception.AccesoNoAutorizadoException;
+import es.paloma.contacto.backend.exception.ConflictoException;
+import es.paloma.contacto.backend.exception.PeticionIncorrectaException;
+import es.paloma.contacto.backend.exception.RecursoNoEncontradoException;
 import es.paloma.contacto.backend.model.Match;
 import es.paloma.contacto.backend.model.Usuario;
 import es.paloma.contacto.backend.repository.MatchRepository;
+import es.paloma.contacto.backend.repository.MensajeRepository;
 import es.paloma.contacto.backend.repository.UsuarioRepository;
-import es.paloma.contacto.backend.security.JwtUtil;
 import es.paloma.contacto.backend.service.MatchingService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.*;
 
+import java.security.Principal;
 import java.time.LocalDateTime;
+import java.time.ZoneOffset;
 import java.util.List;
 import java.util.Map;
 
@@ -29,48 +38,84 @@ public class MatchController {
     private UsuarioRepository usuarioRepository;
 
     @Autowired
-    private JwtUtil jwtUtil;
+    private MensajeRepository mensajeRepository;
 
     @PostMapping
-    public ResponseEntity<Match> createMatch(@RequestBody Map<String, Long> payload,
-                                             @RequestHeader("Authorization") String authHeader) {
-        String token = authHeader.substring(7);
-        String email = jwtUtil.extractEmail(token);
-
-        Usuario mayorAutenticado = usuarioRepository.findByEmail(email).orElse(null);
+    @Transactional
+    public ResponseEntity<MatchAdminDTO> createMatch(@RequestBody Map<String, Long> payload, Principal principal) {
+        Usuario mayorAutenticado = usuarioRepository.findByEmail(principal.getName())
+                .orElseThrow(() -> new RecursoNoEncontradoException("Usuario no encontrado"));
         Long voluntarioId = payload.get("voluntarioId");
 
-        if (mayorAutenticado == null || voluntarioId == null) {
-            return ResponseEntity.status(HttpStatus.BAD_REQUEST).build();
+        if (voluntarioId == null) throw new PeticionIncorrectaException("ID de voluntario no proporcionado");
+        if (mayorAutenticado.getId().equals(voluntarioId)) {
+            throw new PeticionIncorrectaException("No puedes crear un match contigo mismo");
+        }
+        if (!"MAYOR".equals(mayorAutenticado.getRol())) {
+            throw new AccesoNoAutorizadoException("Solo los usuarios MAYOR pueden crear conexiones");
         }
 
-        Usuario voluntario = usuarioRepository.findById(voluntarioId).orElse(null);
-        if (voluntario == null) {
-            return ResponseEntity.status(HttpStatus.NOT_FOUND).build();
+        boolean yaExiste = matchRepository.findByMayorId(mayorAutenticado.getId()).stream()
+                .anyMatch(m -> m.getVoluntario().getId().equals(voluntarioId));
+
+        if (yaExiste) {
+            throw new ConflictoException("Ya tienes una conexión activa con este voluntario");
+        }
+
+        Usuario voluntario = usuarioRepository.findById(voluntarioId)
+                .orElseThrow(() -> new RecursoNoEncontradoException("Voluntario no encontrado"));
+        if (!"VOLUNTARIO".equals(voluntario.getRol())) {
+            throw new PeticionIncorrectaException("El usuario destino debe tener rol VOLUNTARIO");
         }
 
         Match match = new Match();
-        match.setCreatedAt(LocalDateTime.now());
+        match.setCreatedAt(LocalDateTime.now(ZoneOffset.UTC));
         match.setActive(true);
         match.setMayor(mayorAutenticado);
         match.setVoluntario(voluntario);
 
-        Match nuevoMatch = matchRepository.save(match);
-        return ResponseEntity.status(HttpStatus.CREATED).body(nuevoMatch);
+        Match guardado = matchRepository.save(match);
+
+        MatchAdminDTO responseDTO = new MatchAdminDTO(
+                guardado.getId(),
+                guardado.getMayor().getNombre(),
+                guardado.getVoluntario().getNombre(),
+                guardado.getCreatedAt().toString(),
+                guardado.isActive()
+        );
+
+        return ResponseEntity.status(HttpStatus.CREATED).body(responseDTO);
     }
 
     @GetMapping("/sugerencias")
-    public ResponseEntity<List<Usuario>> sugerirVoluntarios(@RequestHeader("Authorization") String authHeader) {
-        try {
-            String token = authHeader.substring(7);
-            String email = jwtUtil.extractEmail(token);
-            Usuario usuarioAutenticado = usuarioRepository.findByEmail(email)
-                    .orElseThrow(() -> new RuntimeException("Usuario no encontrado"));
+    public ResponseEntity<List<UsuarioPerfilDTO>> sugerirVoluntarios(Principal principal, @RequestParam(required = false) String interes) {
+        Usuario usuario = usuarioRepository.findByEmail(principal.getName())
+                .orElseThrow(() -> new RecursoNoEncontradoException("Usuario no encontrado"));
 
-            List<Usuario> sugerencias = matchingService.sugerirVoluntarios(usuarioAutenticado.getId());
-            return ResponseEntity.ok(sugerencias);
-        } catch (RuntimeException e) {
-            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
+        if (!"MAYOR".equalsIgnoreCase(usuario.getRol())) {
+            return ResponseEntity.ok(List.of());
         }
+
+        return ResponseEntity.ok(matchingService.sugerirVoluntarios(usuario.getId(), interes));
+    }
+
+    @DeleteMapping("/{id}")
+    @Transactional
+    public ResponseEntity<Void> eliminarMatch(@PathVariable Long id, Principal principal) {
+        Usuario usuario = usuarioRepository.findByEmail(principal.getName())
+                .orElseThrow(() -> new RecursoNoEncontradoException("Usuario no encontrado"));
+
+        Match match = matchRepository.findById(id)
+                .orElseThrow(() -> new RecursoNoEncontradoException("Match no encontrado"));
+
+        if (!"ADMIN".equals(usuario.getRol()) &&
+                !match.getMayor().getId().equals(usuario.getId()) &&
+                !match.getVoluntario().getId().equals(usuario.getId())) {
+            throw new AccesoNoAutorizadoException("No tienes permiso para eliminar esta conexión");
+        }
+
+        mensajeRepository.borrarConversacion(match.getMayor().getId(), match.getVoluntario().getId());
+        matchRepository.delete(match);
+        return ResponseEntity.noContent().build();
     }
 }
