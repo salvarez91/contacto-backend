@@ -5,10 +5,7 @@ import jakarta.persistence.*;
 import java.time.LocalDateTime;
 
 @Entity
-@Table(name = "alertas", indexes = {
-        @Index(name = "idx_alerta_vista", columnList = "vista"),
-        @Index(name = "idx_alerta_referido", columnList = "referido_id")
-})
+@Table(name = "alertas")
 public class Alerta {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -17,15 +14,15 @@ public class Alerta {
     @Column(nullable = false)
     private String descripcion;
 
-    @ManyToOne
-    @JoinColumn(name = "referido_id", nullable = false)
-    private Usuario referido;
-
     @Column(name = "fecha_creacion", nullable = false)
     private LocalDateTime fechaCreacion;
 
     @Column(nullable = false)
-    private boolean vista;
+    private boolean vista = false;
+
+    @ManyToOne(fetch = FetchType.EAGER)
+    @JoinColumn(name = "referido_id", nullable = false)
+    private Usuario referido;
 
     public Alerta() {
     }
@@ -46,14 +43,6 @@ public class Alerta {
         this.descripcion = descripcion;
     }
 
-    public Usuario getReferido() {
-        return referido;
-    }
-
-    public void setReferido(Usuario referido) {
-        this.referido = referido;
-    }
-
     public LocalDateTime getFechaCreacion() {
         return fechaCreacion;
     }
@@ -68,5 +57,13 @@ public class Alerta {
 
     public void setVista(boolean vista) {
         this.vista = vista;
+    }
+
+    public Usuario getReferido() {
+        return referido;
+    }
+
+    public void setReferido(Usuario referido) {
+        this.referido = referido;
     }
 }
