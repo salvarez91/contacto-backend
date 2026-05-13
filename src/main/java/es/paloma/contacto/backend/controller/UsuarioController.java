@@ -10,19 +10,14 @@ import es.paloma.contacto.backend.model.Usuario;
 import es.paloma.contacto.backend.repository.UsuarioRepository;
 import es.paloma.contacto.backend.service.MatchingService;
 import es.paloma.contacto.backend.service.UsuarioService;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.http.ResponseEntity;
-import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.*;
 
 import java.security.Principal;
-import java.time.LocalDate;
-import java.time.format.DateTimeParseException;
 import java.util.List;
 import java.util.Map;
 
@@ -30,7 +25,6 @@ import java.util.Map;
 @RequestMapping("/api/usuarios")
 public class UsuarioController {
 
-    private static final Logger log = LoggerFactory.getLogger(UsuarioController.class);
     private static final long MAX_FOTO_BYTES = 5L * 1024L * 1024L;
 
     @Autowired
@@ -58,15 +52,13 @@ public class UsuarioController {
     }
 
     @DeleteMapping("/{id}")
-    @Transactional
     public ResponseEntity<?> eliminarUsuario(@PathVariable Long id) {
         usuarioService.eliminarUsuario(id);
         return ResponseEntity.noContent().build();
     }
 
     @GetMapping("/mis-contactos")
-    public ResponseEntity<List<ContactoDTO>>
-    getMisContactos(Principal principal) {
+    public ResponseEntity<List<ContactoDTO>> getMisContactos(Principal principal) {
         Usuario usuario = usuarioRepository.findByEmail(principal.getName())
                 .orElseThrow(() -> new RecursoNoEncontradoException("Usuario no encontrado"));
         return ResponseEntity.ok(matchingService.obtenerMisContactos(usuario.getId()));
@@ -74,26 +66,13 @@ public class UsuarioController {
 
     @GetMapping("/mi-perfil")
     public ResponseEntity<UsuarioPerfilDTO> getMiPerfil(Principal principal) {
-        UsuarioPerfilDTO perfil = usuarioService.obtenerPerfil(principal.getName());
-        return ResponseEntity.ok(perfil);
+        return ResponseEntity.ok(usuarioService.obtenerPerfil(principal.getName()));
     }
 
     @PutMapping("/perfil")
-    @Transactional
-    public ResponseEntity<Usuario> actualizarPerfil(@RequestBody ActualizarPerfilRequest datos, Principal principal) {
-        Usuario usuario = usuarioRepository.findByEmail(principal.getName())
-                .orElseThrow(() -> new RecursoNoEncontradoException("Usuario no encontrado"));
-        if (datos.getNombre() != null) usuario.setNombre(datos.getNombre());
-        if (datos.getDescripcion() != null) usuario.setDescripcion(datos.getDescripcion());
-        if (datos.getPuebloCiudad() != null) usuario.setPuebloCiudad(datos.getPuebloCiudad());
-        if (datos.getFechaNacimiento() != null && !datos.getFechaNacimiento().isBlank()) {
-            try {
-                usuario.setFechaNacimiento(LocalDate.parse(datos.getFechaNacimiento()));
-            } catch (DateTimeParseException e) {
-                throw new PeticionIncorrectaException("Formato de fecha invalido");
-            }
-        }
-        return ResponseEntity.ok(usuarioRepository.save(usuario));
+    public ResponseEntity<UsuarioPerfilDTO> actualizarPerfil(@RequestBody ActualizarPerfilRequest datos, Principal principal) {
+        UsuarioPerfilDTO perfilActualizado = usuarioService.actualizarPerfil(principal.getName(), datos);
+        return ResponseEntity.ok(perfilActualizado);
     }
 
     @GetMapping("/upload-url-foto")
