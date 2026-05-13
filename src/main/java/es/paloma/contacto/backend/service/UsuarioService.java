@@ -64,7 +64,7 @@ public class UsuarioService {
                 usuario.getNombre(),
                 usuario.getEmail(),
                 usuario.getPuebloCiudad() != null ? usuario.getPuebloCiudad() : "No especificado",
-                usuario.getValidDescripcion(),
+                usuario.getDescripcion() != null ? usuario.getDescripcion() : "Sin descripción",
                 usuario.getFotoPerfilKey(),
                 usuario.getFechaNacimiento() != null ? usuario.getFechaNacimiento().toString() : "",
                 intereses
@@ -94,8 +94,8 @@ public class UsuarioService {
                 usuario.getId(),
                 usuario.getNombre(),
                 usuario.getEmail(),
-                usuario.getPuebloCiudad(),
-                usuario.getDescripcion(),
+                usuario.getPuebloCiudad() != null ? usuario.getPuebloCiudad() : "No especificado",
+                usuario.getDescripcion() != null ? usuario.getDescripcion() : "Sin descripción",
                 usuario.getFotoPerfilKey(),
                 usuario.getFechaNacimiento() != null ? usuario.getFechaNacimiento().toString() : "",
                 interesesNombres
