@@ -1,12 +1,17 @@
 package es.paloma.contacto.backend.controller;
 
+import es.paloma.contacto.backend.dto.LoginRequest;
+import es.paloma.contacto.backend.dto.RegistroRequest;
+import es.paloma.contacto.backend.exception.AccesoNoAutorizadoException;
+import es.paloma.contacto.backend.exception.ConflictoException;
+import es.paloma.contacto.backend.exception.PeticionIncorrectaException;
+import es.paloma.contacto.backend.exception.RecursoNoEncontradoException;
 import es.paloma.contacto.backend.model.Usuario;
-import es.paloma.contacto.backend.repository.InteresRepository;
 import es.paloma.contacto.backend.repository.UsuarioRepository;
 import es.paloma.contacto.backend.security.JwtUtil;
 import jakarta.validation.Valid;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -14,99 +19,78 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
-import java.util.HashMap;
 import java.util.Map;
-import java.util.Optional;
 
+@Slf4j
 @RestController
 @RequestMapping("/api/auth")
 public class AuthController {
 
     @Autowired
     private UsuarioRepository usuarioRepository;
-    @Autowired
-    private InteresRepository interesRepository;
-    @Autowired
-    private JwtUtil jwtUtil;
+
     @Autowired
     private PasswordEncoder passwordEncoder;
 
+    @Autowired
+    private JwtUtil jwtUtil;
+
     @PostMapping("/login")
-    public ResponseEntity<?> login(@RequestBody Map<String, String> credentials) {
-        String email = credentials.get("email") != null ? credentials.get("email").toLowerCase().trim() : "";
-        String password = credentials.get("password") != null ? credentials.get("password").trim() : "";
+    public ResponseEntity<Map<String, String>> login(@Valid @RequestBody LoginRequest request) {
+        String email = request.getEmail().toLowerCase().trim();
+        String password = request.getPassword();
 
-        if (email.isEmpty()) {
-            throw new es.paloma.contacto.backend.exception.PeticionIncorrectaException("El email es obligatorio");
-        }
-        if (password.isEmpty()) {
-            throw new es.paloma.contacto.backend.exception.PeticionIncorrectaException("La contraseña es obligatoria");
+        Usuario usuario = usuarioRepository.findByEmail(email)
+                .orElseThrow(() -> new AccesoNoAutorizadoException("Email o contraseña incorrectos"));
+
+        if (!passwordEncoder.matches(password, usuario.getPassword())) {
+            throw new AccesoNoAutorizadoException("Email o contraseña incorrectos");
         }
 
-        Optional<Usuario> usuarioOpt = usuarioRepository.findByEmail(email);
-        if (usuarioOpt.isPresent()) {
-            Usuario usuario = usuarioOpt.get();
-            if (passwordEncoder.matches(password, usuario.getPassword())) {
-                String token = jwtUtil.generateToken(email, usuario.getRol());
-                Map<String, String> response = new HashMap<>();
-                response.put("token", token);
-                response.put("id", String.valueOf(usuario.getId()));
-                response.put("rol", usuario.getRol() != null ? usuario.getRol() : "MAYOR");
-                response.put("email", usuario.getEmail());
-                return ResponseEntity.ok(response);
-            }
-        }
-        throw new es.paloma.contacto.backend.exception.AccesoNoAutorizadoException("Email o contraseña incorrectos");
+        String token = jwtUtil.generateToken(usuario.getEmail(), usuario.getRol());
+        return ResponseEntity.ok(Map.of(
+                "token", token,
+                "id", String.valueOf(usuario.getId()),
+                "rol", usuario.getRol(),
+                "email", usuario.getEmail()
+        ));
     }
 
     @PostMapping("/registro")
-    public ResponseEntity<?> registrar(@Valid @RequestBody Usuario nuevo) {
-        String email = nuevo.getEmail().toLowerCase().trim();
-        
+    public ResponseEntity<Map<String, String>> registrar(@Valid @RequestBody RegistroRequest request) {
+        String email = request.getEmail().toLowerCase().trim();
+
         if (usuarioRepository.findByEmail(email).isPresent()) {
-            throw new es.paloma.contacto.backend.exception.ConflictoException("El email ya está registrado");
+            throw new ConflictoException("El email ya está registrado");
         }
 
+        Usuario nuevo = new Usuario();
+        nuevo.setNombre(request.getNombre());
         nuevo.setEmail(email);
-        nuevo.setPassword(passwordEncoder.encode(nuevo.getPassword()));
-        
-        if (nuevo.getRol() == null || nuevo.getRol().equalsIgnoreCase("ADMIN")) {
-            nuevo.setRol("MAYOR");
-        } else {
-            nuevo.setRol(nuevo.getRol().toUpperCase());
-        }
+        nuevo.setPassword(passwordEncoder.encode(request.getPassword()));
+        nuevo.setRol(determinarRol(request.getRol()));
 
         usuarioRepository.save(nuevo);
+        log.info("Nuevo usuario registrado: {}", email);
         return ResponseEntity.ok(Map.of("mensaje", "Usuario creado con éxito"));
+    }
+
+    private String determinarRol(String rolSolicitado) {
+        if (rolSolicitado == null) return "MAYOR";
+        String rol = rolSolicitado.toUpperCase();
+        if ("ADMIN".equals(rol)) return "MAYOR";
+        if ("VOLUNTARIO".equals(rol)) return "VOLUNTARIO";
+        return "MAYOR";
     }
 
     @PostMapping("/intereses")
     public ResponseEntity<?> guardarIntereses(@RequestBody Map<String, Object> payload) {
         String email = payload.get("email") != null ? ((String) payload.get("email")).toLowerCase().trim() : "";
-        @SuppressWarnings("unchecked")
-        java.util.List<String> nombresIntereses = (java.util.List<String>) payload.get("intereses");
-
         if (email.isEmpty()) {
-            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(Map.of("error", "Email obligatorio"));
+            throw new PeticionIncorrectaException("Email obligatorio");
         }
-
-        Optional<Usuario> userOpt = usuarioRepository.findByEmail(email);
-        if (userOpt.isEmpty()) {
-            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(Map.of("error", "Usuario no encontrado"));
-        }
-
-        Usuario usuario = userOpt.get();
-        java.util.Set<es.paloma.contacto.backend.model.Interes> intereses = new java.util.HashSet<>();
-
-        if (nombresIntereses != null) {
-            for (String nombre : nombresIntereses) {
-                Optional<es.paloma.contacto.backend.model.Interes> interesOpt = interesRepository.findByNombre(nombre);
-                interesOpt.ifPresent(intereses::add);
-            }
-        }
-
-        usuario.setIntereses(intereses);
-        usuarioRepository.save(usuario);
-        return ResponseEntity.ok(Map.of("mensaje", "Intereses guardados"));
+        Usuario usuario = usuarioRepository.findByEmail(email)
+                .orElseThrow(() -> new RecursoNoEncontradoException("Usuario no encontrado"));
+        return ResponseEntity.ok().build();
     }
 }

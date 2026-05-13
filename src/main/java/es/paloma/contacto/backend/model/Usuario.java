@@ -31,6 +31,7 @@ public class Usuario {
 
     @JsonIgnore
     @NotBlank(message = "La contraseña es obligatoria")
+    @Size(min = 6, message = "La contraseña debe tener al menos 6 caracteres")
     @Column(nullable = false)
     private String password;
 

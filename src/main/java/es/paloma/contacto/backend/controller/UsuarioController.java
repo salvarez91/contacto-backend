@@ -9,9 +9,9 @@ import es.paloma.contacto.backend.model.Usuario;
 import es.paloma.contacto.backend.repository.*;
 import es.paloma.contacto.backend.security.JwtUtil;
 import es.paloma.contacto.backend.service.MatchingService;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.PageRequest;
-import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.*;
@@ -22,6 +22,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 
+@Slf4j
 @RestController
 @RequestMapping("/api/usuarios")
 public class UsuarioController {
@@ -52,8 +53,8 @@ public class UsuarioController {
 
     @GetMapping
     public List<Usuario> obtenerTodos(@RequestParam(defaultValue = "0") int page,
-                                     @RequestParam(defaultValue = "20") int size,
-                                     @RequestParam(required = false) String excluir) {
+                                      @RequestParam(defaultValue = "20") int size,
+                                      @RequestParam(required = false) String excluir) {
         PageRequest pageable = PageRequest.of(page, size);
         if (excluir != null && !excluir.isBlank()) {
             return usuarioRepository.findByEmailNot(excluir.trim());
@@ -80,9 +81,11 @@ public class UsuarioController {
             usuarioRepository.save(u);
 
             usuarioRepository.deleteById(id);
+            log.info("Usuario eliminado correctamente: id={}", id);
             return ResponseEntity.noContent().build();
         } catch (Exception e) {
-            throw new RuntimeException("Error al eliminar el usuario y sus relaciones: " + e.getMessage());
+            log.error("Error al eliminar el usuario con id={}", id, e);
+            throw new PeticionIncorrectaException("No se pudo eliminar el usuario");
         }
     }
 
