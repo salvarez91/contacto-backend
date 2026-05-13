@@ -24,14 +24,14 @@ public class Usuario {
     private String nombre;
 
     @NotBlank(message = "El email es obligatorio")
-    @Email(message = "Debe ser un email válido")
+    @Email(message = "Debe ser un email vÃ¡lido")
     @Size(max = 150)
     @Column(nullable = false, unique = true, length = 150)
     private String email;
 
     @JsonIgnore
-    @NotBlank(message = "La contraseña es obligatoria")
-    @Size(min = 6, message = "La contraseña debe tener al menos 6 caracteres")
+    @NotBlank(message = "La contraseÃ±a es obligatoria")
+    @Size(min = 6, message = "La contraseÃ±a debe tener al menos 6 caracteres")
     @Column(nullable = false)
     private String password;
 

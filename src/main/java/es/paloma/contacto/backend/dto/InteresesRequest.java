@@ -7,7 +7,7 @@ import java.util.List;
 
 public class InteresesRequest {
     @NotBlank(message = "El email es obligatorio")
-    @Email(message = "Debe ser un email válido")
+    @Email(message = "Debe ser un email vÃ¡lido")
     private String email;
 
     private List<String> intereses;
