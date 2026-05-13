@@ -49,9 +49,10 @@ public class MatchingService {
                         v.getId(),
                         v.getNombre(),
                         v.getEmail(),
-                        v.getPuebloCiudad(),
-                        v.getDescripcion(),
+                        v.getPuebloCiudad() != null ? v.getPuebloCiudad() : "No especificado",
+                        v.getDescripcion() != null ? v.getDescripcion() : "Sin descripción",
                         v.getFotoPerfilKey(),
+                        v.getFechaNacimiento() != null ? v.getFechaNacimiento().toString() : "",
                         v.getIntereses().stream()
                                 .map(Interes::getNombre)
                                 .collect(Collectors.toList())
