@@ -34,7 +34,14 @@ public class ChatController {
     private SimpMessagingTemplate messagingTemplate;
 
     @GetMapping("/{u1}/{u2}")
-    public List<Mensaje> getHistorial(@PathVariable Long u1, @PathVariable Long u2) {
+    public List<Mensaje> getHistorial(@PathVariable Long u1, @PathVariable Long u2, Principal principal) {
+        Usuario autenticado = usuarioRepository.findByEmail(principal.getName())
+                .orElseThrow(() -> new RecursoNoEncontradoException("Usuario no encontrado"));
+
+        if (!autenticado.getId().equals(u1) && !autenticado.getId().equals(u2)) {
+            throw new AccesoNoAutorizadoException("No tienes permiso para ver esta conversación");
+        }
+
         return mensajeRepository.findConversacion(u1, u2);
     }
 

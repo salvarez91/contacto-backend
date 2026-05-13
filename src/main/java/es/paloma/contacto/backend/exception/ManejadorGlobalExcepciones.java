@@ -2,11 +2,13 @@ package es.paloma.contacto.backend.exception;
 
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.http.converter.HttpMessageNotReadableException;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.validation.FieldError;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
+import org.springframework.web.server.ResponseStatusException;
 
 import java.time.LocalDateTime;
 import java.util.LinkedHashMap;
@@ -48,7 +50,17 @@ public class ManejadorGlobalExcepciones {
     public ResponseEntity<Object> manejarConflicto(ConflictoException ex) {
         return crearRespuesta(HttpStatus.CONFLICT, ex.getMessage());
     }
-    
+
+    @ExceptionHandler(ResponseStatusException.class)
+    public ResponseEntity<Object> manejarResponseStatusException(ResponseStatusException ex) {
+        return crearRespuesta(HttpStatus.valueOf(ex.getStatusCode().value()), ex.getReason());
+    }
+
+    @ExceptionHandler(HttpMessageNotReadableException.class)
+    public ResponseEntity<Object> manejarJsonInvalido(HttpMessageNotReadableException ex) {
+        return crearRespuesta(HttpStatus.BAD_REQUEST, "Error en el formato del JSON o tipo de datos incorrecto");
+    }
+
     @ExceptionHandler(MethodArgumentNotValidException.class)
     public ResponseEntity<Object> manejarValidacion(MethodArgumentNotValidException ex) {
         Map<String, String> errores = new LinkedHashMap<>();
@@ -57,7 +69,7 @@ public class ManejadorGlobalExcepciones {
             String mensaje = error.getDefaultMessage();
             errores.put(campo, mensaje);
         });
-        
+
         String primerMensaje = errores.values().iterator().next();
         return crearRespuesta(HttpStatus.BAD_REQUEST, primerMensaje);
     }
