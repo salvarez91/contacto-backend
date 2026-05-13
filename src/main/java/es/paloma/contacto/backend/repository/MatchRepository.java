@@ -1,7 +1,7 @@
 package es.paloma.contacto.backend.repository;
 
 import es.paloma.contacto.backend.model.Match;
-import jakarta.transaction.Transactional;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.data.jpa.repository.JpaRepository;
 
 import java.util.List;

@@ -48,7 +48,7 @@ public class GestorObjetosS3 {
                 .putObjectRequest(putObjectRequest)
                 .build();
 
-        return s3Presigner.presignPutObject(presignRequest).url().toString();
+        return this.s3Presigner.presignPutObject(presignRequest).url().toString();
     }
 
     public String obtenerUrlLectura(String key) {
@@ -62,6 +62,6 @@ public class GestorObjetosS3 {
                 .getObjectRequest(getObjectRequest)
                 .build();
 
-        return s3Presigner.presignGetObject(presignRequest).url().toString();
+        return this.s3Presigner.presignGetObject(presignRequest).url().toString();
     }
 }

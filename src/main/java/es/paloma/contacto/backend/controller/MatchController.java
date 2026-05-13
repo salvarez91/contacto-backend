@@ -11,7 +11,7 @@ import es.paloma.contacto.backend.repository.MensajeRepository;
 import es.paloma.contacto.backend.repository.UsuarioRepository;
 import es.paloma.contacto.backend.security.JwtUtil;
 import es.paloma.contacto.backend.service.MatchingService;
-import jakarta.transaction.Transactional;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;

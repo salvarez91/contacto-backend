@@ -1,7 +1,7 @@
 package es.paloma.contacto.backend.repository;
 
 import es.paloma.contacto.backend.model.EstadoAnimo;
-import jakarta.transaction.Transactional;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.data.jpa.repository.JpaRepository;
 
 import java.time.LocalDate;
