@@ -2,7 +2,6 @@ package es.paloma.contacto.backend.service;
 
 import es.paloma.contacto.backend.dto.ContactoDTO;
 import es.paloma.contacto.backend.dto.UsuarioPerfilDTO;
-import es.paloma.contacto.backend.model.Interes;
 import es.paloma.contacto.backend.model.Match;
 import es.paloma.contacto.backend.model.Usuario;
 import es.paloma.contacto.backend.repository.MatchRepository;
@@ -11,6 +10,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
@@ -53,9 +53,7 @@ public class MatchingService {
                         v.getDescripcion() != null ? v.getDescripcion() : "Sin descripción",
                         v.getFotoPerfilKey(),
                         v.getFechaNacimiento() != null ? v.getFechaNacimiento().toString() : "",
-                        v.getIntereses().stream()
-                                .map(Interes::getNombre)
-                                .collect(Collectors.toList())
+                        new ArrayList<>(v.getIntereses())
                 ))
                 .collect(Collectors.toList());
     }
