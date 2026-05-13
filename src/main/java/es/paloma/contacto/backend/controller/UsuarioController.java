@@ -11,7 +11,9 @@ import es.paloma.contacto.backend.security.JwtUtil;
 import es.paloma.contacto.backend.service.MatchingService;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
 import org.springframework.http.ResponseEntity;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.*;
@@ -52,14 +54,14 @@ public class UsuarioController {
     private GestorObjetosS3 gestorObjetosS3;
 
     @GetMapping
-    public List<Usuario> obtenerTodos(@RequestParam(defaultValue = "0") int page,
+    public Page<Usuario> obtenerTodos(@RequestParam(defaultValue = "0") int page,
                                       @RequestParam(defaultValue = "20") int size,
                                       @RequestParam(required = false) String excluir) {
-        PageRequest pageable = PageRequest.of(page, size);
+        Pageable pageable = PageRequest.of(page, size);
         if (excluir != null && !excluir.isBlank()) {
-            return usuarioRepository.findByEmailNot(excluir.trim());
+            return usuarioRepository.findByEmailNot(excluir.trim(), pageable);
         }
-        return usuarioRepository.findAll(pageable).getContent();
+        return usuarioRepository.findAll(pageable);
     }
 
     @DeleteMapping("/{id}")

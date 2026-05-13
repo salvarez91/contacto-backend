@@ -1,12 +1,12 @@
 package es.paloma.contacto.backend.controller;
 
-import es.paloma.contacto.backend.dto.LoginRequest;
-import es.paloma.contacto.backend.dto.RegistroRequest;
+import es.paloma.contacto.backend.dto.*;
 import es.paloma.contacto.backend.exception.AccesoNoAutorizadoException;
 import es.paloma.contacto.backend.exception.ConflictoException;
-import es.paloma.contacto.backend.exception.PeticionIncorrectaException;
 import es.paloma.contacto.backend.exception.RecursoNoEncontradoException;
+import es.paloma.contacto.backend.model.Interes;
 import es.paloma.contacto.backend.model.Usuario;
+import es.paloma.contacto.backend.repository.InteresRepository;
 import es.paloma.contacto.backend.repository.UsuarioRepository;
 import es.paloma.contacto.backend.security.JwtUtil;
 import jakarta.validation.Valid;
@@ -14,12 +14,15 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
-import java.util.Map;
+import java.util.HashSet;
+import java.util.Optional;
+import java.util.Set;
 
 @Slf4j
 @RestController
@@ -30,14 +33,17 @@ public class AuthController {
     private UsuarioRepository usuarioRepository;
 
     @Autowired
+    private InteresRepository interesRepository;
+
+    @Autowired
     private PasswordEncoder passwordEncoder;
 
     @Autowired
     private JwtUtil jwtUtil;
 
     @PostMapping("/login")
-    public ResponseEntity<Map<String, String>> login(@Valid @RequestBody LoginRequest request) {
-        String email = request.getEmail().toLowerCase().trim();
+    public ResponseEntity<LoginResponse> login(@Valid @RequestBody LoginRequest request) {
+        String email = request.getEmail().trim().toLowerCase();
         String password = request.getPassword();
 
         Usuario usuario = usuarioRepository.findByEmail(email)
@@ -48,17 +54,14 @@ public class AuthController {
         }
 
         String token = jwtUtil.generateToken(usuario.getEmail(), usuario.getRol());
-        return ResponseEntity.ok(Map.of(
-                "token", token,
-                "id", String.valueOf(usuario.getId()),
-                "rol", usuario.getRol(),
-                "email", usuario.getEmail()
-        ));
+        LoginResponse response = new LoginResponse(token, String.valueOf(usuario.getId()), usuario.getRol(), usuario.getEmail());
+        return ResponseEntity.ok(response);
     }
 
+    @Transactional
     @PostMapping("/registro")
-    public ResponseEntity<Map<String, String>> registrar(@Valid @RequestBody RegistroRequest request) {
-        String email = request.getEmail().toLowerCase().trim();
+    public ResponseEntity<RegistroResponse> registrar(@Valid @RequestBody RegistroRequest request) {
+        String email = request.getEmail().trim().toLowerCase();
 
         if (usuarioRepository.findByEmail(email).isPresent()) {
             throw new ConflictoException("El email ya está registrado");
@@ -72,7 +75,7 @@ public class AuthController {
 
         usuarioRepository.save(nuevo);
         log.info("Nuevo usuario registrado: {}", email);
-        return ResponseEntity.ok(Map.of("mensaje", "Usuario creado con éxito"));
+        return ResponseEntity.ok(new RegistroResponse("Usuario creado con éxito"));
     }
 
     private String determinarRol(String rolSolicitado) {
@@ -83,14 +86,24 @@ public class AuthController {
         return "MAYOR";
     }
 
+    @Transactional
     @PostMapping("/intereses")
-    public ResponseEntity<?> guardarIntereses(@RequestBody Map<String, Object> payload) {
-        String email = payload.get("email") != null ? ((String) payload.get("email")).toLowerCase().trim() : "";
-        if (email.isEmpty()) {
-            throw new PeticionIncorrectaException("Email obligatorio");
-        }
+    public ResponseEntity<RegistroResponse> guardarIntereses(@Valid @RequestBody InteresesRequest request) {
+        String email = request.getEmail().trim().toLowerCase();
+
         Usuario usuario = usuarioRepository.findByEmail(email)
                 .orElseThrow(() -> new RecursoNoEncontradoException("Usuario no encontrado"));
-        return ResponseEntity.ok().build();
+
+        Set<Interes> intereses = new HashSet<>();
+        if (request.getIntereses() != null) {
+            for (String nombre : request.getIntereses()) {
+                Optional<Interes> interesOpt = interesRepository.findByNombre(nombre);
+                interesOpt.ifPresent(intereses::add);
+            }
+        }
+        usuario.setIntereses(intereses);
+        usuarioRepository.save(usuario);
+        log.info("Intereses guardados para usuario: {}", email);
+        return ResponseEntity.ok(new RegistroResponse("Intereses guardados con éxito"));
     }
 }
