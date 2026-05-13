@@ -8,6 +8,8 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.security.Principal;
+import java.util.HashMap;
+import java.util.Map;
 
 @RestController
 @RequestMapping("/api/estados-animo")
@@ -17,9 +19,16 @@ public class EstadoAnimoController {
     private EstadoAnimoService estadoAnimoService;
 
     @PostMapping
-    public ResponseEntity<EstadoAnimo> registrar(@RequestBody EstadoAnimo estado, Principal principal) {
+    public ResponseEntity<Map<String, Object>> registrar(@RequestBody EstadoAnimo estado, Principal principal) {
         EstadoAnimo nuevo = estadoAnimoService.registrar(estado, principal.getName());
-        return ResponseEntity.status(HttpStatus.CREATED).body(nuevo);
+
+        Map<String, Object> response = new HashMap<>();
+        response.put("id", nuevo.getId());
+        response.put("nivelEmocional", nuevo.getNivelEmocional());
+        response.put("fecha", nuevo.getFecha());
+        response.put("usuarioId", nuevo.getUsuario().getId());
+
+        return ResponseEntity.status(HttpStatus.CREATED).body(response);
     }
 
     @GetMapping("/hoy/{usuarioId}")
