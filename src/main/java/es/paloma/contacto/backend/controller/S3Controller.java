@@ -23,7 +23,7 @@ public class S3Controller {
     public ResponseEntity<Map<String, String>> obtenerUrlSubida(@RequestParam("nombreArchivo") String nombreArchivo,
                                                                 @RequestParam(value = "tipo", defaultValue = "image/jpeg") String tipo) {
         String clave = "perfiles/" + nombreArchivo;
-        String urlFirma = gestorObjetosS3.obtenerURLPutDocumentoEnS3(clave, tipo);
+        String urlFirma = gestorObjetosS3.generarUrlSubida(clave, tipo, 15);
 
         Map<String, String> respuesta = new HashMap<>();
         respuesta.put("url", urlFirma);
@@ -39,7 +39,7 @@ public class S3Controller {
         }
 
         try {
-            String urlFirma = gestorObjetosS3.obtenerURLGetDocumentoEnS3(clave);
+            String urlFirma = gestorObjetosS3.obtenerUrlLectura(clave);
             Map<String, String> respuesta = new HashMap<>();
             respuesta.put("url", urlFirma);
             return ResponseEntity.ok(respuesta);

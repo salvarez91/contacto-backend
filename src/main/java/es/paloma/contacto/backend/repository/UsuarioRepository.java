@@ -17,15 +17,8 @@ public interface UsuarioRepository extends JpaRepository<Usuario, Long> {
 
     Optional<Usuario> findByEmail(String email);
 
-    List<Usuario> findByEmailNot(String email);
-
     Page<Usuario> findByEmailNot(String email, Pageable pageable);
 
-    @Query("""
-                SELECT DISTINCT u
-                FROM Usuario u
-                JOIN u.intereses i
-                WHERE i.id IN :interesesIds
-            """)
+    @Query("SELECT DISTINCT u FROM Usuario u JOIN u.intereses i WHERE i.id IN :interesesIds")
     List<Usuario> findVoluntariosSugeridos(@Param("interesesIds") Set<Long> interesesIds);
 }

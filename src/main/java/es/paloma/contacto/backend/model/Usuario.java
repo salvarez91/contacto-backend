@@ -53,6 +53,9 @@ public class Usuario {
     @Column(name = "fecha_registro", updatable = false)
     private LocalDateTime fechaRegistro;
 
+    @Column(name = "foto_perfil_key")
+    private String fotoPerfilKey;
+
     @PrePersist
     protected void onCreate() {
         fechaRegistro = LocalDateTime.now();
@@ -159,6 +162,14 @@ public class Usuario {
 
     public void setFechaRegistro(LocalDateTime fechaRegistro) {
         this.fechaRegistro = fechaRegistro;
+    }
+
+    public String getFotoPerfilKey() {
+        return fotoPerfilKey;
+    }
+
+    public void setFotoPerfilKey(String fotoPerfilKey) {
+        this.fotoPerfilKey = fotoPerfilKey;
     }
 
     public Set<Interes> getIntereses() {

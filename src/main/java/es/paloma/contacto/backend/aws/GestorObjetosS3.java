@@ -1,50 +1,67 @@
 package es.paloma.contacto.backend.aws;
 
-import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
+import software.amazon.awssdk.services.s3.S3Client;
 import software.amazon.awssdk.services.s3.model.GetObjectRequest;
 import software.amazon.awssdk.services.s3.model.PutObjectRequest;
 import software.amazon.awssdk.services.s3.presigner.S3Presigner;
-import software.amazon.awssdk.services.s3.presigner.model.PresignedGetObjectRequest;
+import software.amazon.awssdk.services.s3.presigner.model.GetObjectPresignRequest;
 import software.amazon.awssdk.services.s3.presigner.model.PutObjectPresignRequest;
 
 import java.time.Duration;
+import java.util.UUID;
 
 @Service
 public class GestorObjetosS3 {
 
-    private static final String NOMBRE_BUCKET_EN_S3 = "ffe-contacto-repositorio";
-    private static final int TIEMPO_VIDA_MINUTOS_URL = 10;
+    private final S3Client s3Client;
+    private final S3Presigner s3Presigner;
+    private final String bucketName;
 
-    @Autowired
-    private S3Presigner presigner;
+    public GestorObjetosS3(S3Client s3Client, S3Presigner s3Presigner,
+                           @Value("${aws.s3.bucket}") String bucketName) {
+        this.s3Client = s3Client;
+        this.s3Presigner = s3Presigner;
+        this.bucketName = bucketName;
+    }
 
-    public String obtenerURLPutDocumentoEnS3(String claveDocumento, String contentType) {
+    public String generarNombreUnico(Long usuarioId, String extensionOriginal) {
+        String ext = (extensionOriginal == null || extensionOriginal.isBlank()) ? ".jpg" : extensionOriginal;
+        if (!ext.startsWith(".")) ext = "." + ext;
+        return "perfiles/perfil_" + usuarioId + "_" + System.currentTimeMillis() + "_" + UUID.randomUUID().toString().substring(0, 8) + ext;
+    }
+
+    public String generarUrlSubida(String key, int minutosExpiracion) {
+        return generarUrlSubida(key, "image/jpeg", minutosExpiracion);
+    }
+
+    public String generarUrlSubida(String key, String contentType, int minutosExpiracion) {
         PutObjectRequest putObjectRequest = PutObjectRequest.builder()
-                .bucket(NOMBRE_BUCKET_EN_S3)
-                .key(claveDocumento)
+                .bucket(bucketName)
+                .key(key)
                 .contentType(contentType)
                 .build();
 
         PutObjectPresignRequest presignRequest = PutObjectPresignRequest.builder()
-                .signatureDuration(Duration.ofMinutes(TIEMPO_VIDA_MINUTOS_URL))
+                .signatureDuration(Duration.ofMinutes(minutosExpiracion))
                 .putObjectRequest(putObjectRequest)
                 .build();
 
-        return presigner.presignPutObject(presignRequest).url().toString();
+        return s3Presigner.presignPutObject(presignRequest).url().toString();
     }
 
-    public String obtenerURLGetDocumentoEnS3(String claveDocumento) {
+    public String obtenerUrlLectura(String key) {
         GetObjectRequest getObjectRequest = GetObjectRequest.builder()
-                .bucket(NOMBRE_BUCKET_EN_S3)
-                .key(claveDocumento)
+                .bucket(bucketName)
+                .key(key)
                 .build();
 
-        PresignedGetObjectRequest presignedRequest = presigner.presignGetObject(builder -> builder
+        GetObjectPresignRequest presignRequest = GetObjectPresignRequest.builder()
+                .signatureDuration(Duration.ofHours(24))
                 .getObjectRequest(getObjectRequest)
-                .signatureDuration(Duration.ofMinutes(TIEMPO_VIDA_MINUTOS_URL))
-        );
+                .build();
 
-        return presignedRequest.url().toString();
+        return s3Presigner.presignGetObject(presignRequest).url().toString();
     }
 }
