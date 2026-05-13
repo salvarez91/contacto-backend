@@ -1,5 +1,6 @@
 package es.paloma.contacto.backend.controller;
 
+import es.paloma.contacto.backend.dto.UsuarioPerfilDTO;
 import es.paloma.contacto.backend.exception.AccesoNoAutorizadoException;
 import es.paloma.contacto.backend.exception.ConflictoException;
 import es.paloma.contacto.backend.exception.PeticionIncorrectaException;
@@ -76,7 +77,7 @@ public class MatchController {
     }
 
     @GetMapping("/sugerencias")
-    public ResponseEntity<List<Usuario>> sugerirVoluntarios(Principal principal, @RequestParam(required = false) String interes) {
+    public ResponseEntity<List<UsuarioPerfilDTO>> sugerirVoluntarios(Principal principal, @RequestParam(required = false) String interes) {
         Usuario usuario = usuarioRepository.findByEmail(principal.getName())
                 .orElseThrow(() -> new RecursoNoEncontradoException("Usuario no encontrado"));
 
