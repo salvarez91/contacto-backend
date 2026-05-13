@@ -8,10 +8,12 @@ import es.paloma.contacto.backend.model.Usuario;
 import es.paloma.contacto.backend.repository.MensajeRepository;
 import es.paloma.contacto.backend.repository.UsuarioRepository;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
 import org.springframework.messaging.handler.annotation.MessageMapping;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.server.ResponseStatusException;
 
 import java.security.Principal;
 import java.time.LocalDateTime;
@@ -41,11 +43,15 @@ public class ChatController {
     public Mensaje enviarMensaje(@RequestBody MensajeDTO mensajeDTO, Principal principal) {
         if (mensajeDTO == null || mensajeDTO.getReceptorId() == null ||
                 mensajeDTO.getContenido() == null || mensajeDTO.getContenido().trim().isEmpty()) {
-            throw new IllegalArgumentException("Datos del mensaje incompletos");
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "El contenido y el receptor son obligatorios");
         }
 
         Usuario emisor = usuarioRepository.findByEmail(principal.getName())
-                .orElseThrow(() -> new RecursoNoEncontradoException("Usuario no encontrado"));
+                .orElseThrow(() -> new RecursoNoEncontradoException("Emisor no encontrado"));
+
+        if (!usuarioRepository.existsById(mensajeDTO.getReceptorId())) {
+            throw new RecursoNoEncontradoException("El receptor con ID " + mensajeDTO.getReceptorId() + " no existe");
+        }
 
         Mensaje mensaje = new Mensaje();
         mensaje.setEmisorId(emisor.getId());
