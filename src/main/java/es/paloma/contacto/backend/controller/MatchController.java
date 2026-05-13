@@ -62,7 +62,7 @@ public class MatchController {
                 .anyMatch(m -> m.getVoluntario().getId().equals(voluntarioId));
 
         if (yaExiste) {
-            throw new ConflictoException("Ya tienes una conexión activa con este voluntario");
+            throw new ConflictoException("Ya tienes una conexiÃ³n activa con este voluntario");
         }
 
         Usuario voluntario = usuarioRepository.findById(voluntarioId)
@@ -109,7 +109,7 @@ public class MatchController {
         if (!"ADMIN".equals(usuario.getRol()) &&
                 !match.getMayor().getId().equals(usuario.getId()) &&
                 !match.getVoluntario().getId().equals(usuario.getId())) {
-            throw new AccesoNoAutorizadoException("No tienes permiso para eliminar esta conexión");
+            throw new AccesoNoAutorizadoException("No tienes permiso para eliminar esta conexiÃ³n");
         }
 
         mensajeRepository.borrarConversacion(match.getMayor().getId(), match.getVoluntario().getId());

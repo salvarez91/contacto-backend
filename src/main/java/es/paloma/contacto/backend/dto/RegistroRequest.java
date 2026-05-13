@@ -10,11 +10,11 @@ public class RegistroRequest {
     private String nombre;
 
     @NotBlank(message = "El email es obligatorio")
-    @Email(message = "Debe ser un email válido")
+    @Email(message = "Debe ser un email vÃ¡lido")
     private String email;
 
-    @NotBlank(message = "La contraseña es obligatoria")
-    @Size(min = 6, message = "La contraseña debe tener al menos 6 caracteres")
+    @NotBlank(message = "La contraseÃ±a es obligatoria")
+    @Size(min = 6, message = "La contraseÃ±a debe tener al menos 6 caracteres")
     private String password;
 
     private String rol;

@@ -1,7 +1,8 @@
 package es.paloma.contacto.backend.aws;
 
 import es.paloma.contacto.backend.exception.PeticionIncorrectaException;
-import lombok.extern.slf4j.Slf4j;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import software.amazon.awssdk.services.s3.S3Client;
@@ -17,10 +18,10 @@ import java.util.Locale;
 import java.util.Set;
 import java.util.UUID;
 
-@Slf4j
 @Service
 public class GestorObjetosS3 {
 
+    private static final Logger log = LoggerFactory.getLogger(GestorObjetosS3.class);
     private static final Set<String> EXTENSIONES_PERMITIDAS = Set.of("jpg", "jpeg", "png", "webp");
 
     private final S3Client s3Client;
@@ -49,12 +50,10 @@ public class GestorObjetosS3 {
                 .key(key)
                 .contentType(contentType)
                 .build();
-
         PutObjectPresignRequest presignRequest = PutObjectPresignRequest.builder()
                 .signatureDuration(Duration.ofMinutes(minutosExpiracion))
                 .putObjectRequest(putObjectRequest)
                 .build();
-
         return this.s3Presigner.presignPutObject(presignRequest).url().toString();
     }
 
@@ -63,12 +62,10 @@ public class GestorObjetosS3 {
                 .bucket(bucketName)
                 .key(key)
                 .build();
-
         GetObjectPresignRequest presignRequest = GetObjectPresignRequest.builder()
                 .signatureDuration(Duration.ofHours(24))
                 .getObjectRequest(getObjectRequest)
                 .build();
-
         return this.s3Presigner.presignGetObject(presignRequest).url().toString();
     }
 
@@ -77,18 +74,13 @@ public class GestorObjetosS3 {
             log.warn("Intento de eliminar objeto con clave nula o vacia");
             return;
         }
-
         DeleteObjectRequest deleteObjectRequest = DeleteObjectRequest.builder()
                 .bucket(bucketName)
                 .key(key)
                 .build();
-
         this.s3Client.deleteObject(deleteObjectRequest);
     }
 
-    /**
-     * Normaliza la extension recibida desde cliente y rechaza tipos no permitidos.
-     */
     private String normalizarExtension(String extensionOriginal) {
         String extension = (extensionOriginal == null || extensionOriginal.isBlank()) ? "jpg" : extensionOriginal;
         extension = extension.trim().toLowerCase(Locale.ROOT);
@@ -101,9 +93,6 @@ public class GestorObjetosS3 {
         return extension;
     }
 
-    /**
-     * Deriva el Content-Type de una clave S3 validando que tenga extension segura.
-     */
     private String obtenerContentType(String key) {
         int indicePunto = key == null ? -1 : key.lastIndexOf('.');
         if (indicePunto < 0 || indicePunto == key.length() - 1) {

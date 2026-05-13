@@ -1,4 +1,4 @@
-﻿package es.paloma.contacto.backend.service;
+package es.paloma.contacto.backend.service;
 
 import es.paloma.contacto.backend.aws.GestorObjetosS3;
 import es.paloma.contacto.backend.dto.UsuarioPerfilDTO;

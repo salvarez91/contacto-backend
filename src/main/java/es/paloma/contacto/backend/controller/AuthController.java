@@ -10,7 +10,8 @@ import es.paloma.contacto.backend.repository.InteresRepository;
 import es.paloma.contacto.backend.repository.UsuarioRepository;
 import es.paloma.contacto.backend.security.JwtUtil;
 import jakarta.validation.Valid;
-import lombok.extern.slf4j.Slf4j;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -24,10 +25,11 @@ import java.util.HashSet;
 import java.util.Optional;
 import java.util.Set;
 
-@Slf4j
 @RestController
 @RequestMapping("/api/auth")
 public class AuthController {
+
+    private static final Logger log = LoggerFactory.getLogger(AuthController.class);
 
     @Autowired
     private UsuarioRepository usuarioRepository;
@@ -45,12 +47,10 @@ public class AuthController {
     public ResponseEntity<LoginResponse> login(@Valid @RequestBody LoginRequest request) {
         String email = request.getEmail().trim().toLowerCase();
         Usuario usuario = usuarioRepository.findByEmail(email)
-                .orElseThrow(() -> new AccesoNoAutorizadoException("Email o contraseña incorrectos"));
-
+                .orElseThrow(() -> new AccesoNoAutorizadoException("Email o contraseÃ±a incorrectos"));
         if (!passwordEncoder.matches(request.getPassword(), usuario.getPassword())) {
-            throw new AccesoNoAutorizadoException("Email o contraseña incorrectos");
+            throw new AccesoNoAutorizadoException("Email o contraseÃ±a incorrectos");
         }
-
         String token = jwtUtil.generateToken(usuario.getEmail(), usuario.getRol(), usuario.getId());
         return ResponseEntity.ok(new LoginResponse(
                 token,
@@ -65,18 +65,16 @@ public class AuthController {
     public ResponseEntity<RegistroResponse> registrar(@Valid @RequestBody RegistroRequest request) {
         String email = request.getEmail().trim().toLowerCase();
         if (usuarioRepository.findByEmail(email).isPresent()) {
-            throw new ConflictoException("El email ya está registrado");
+            throw new ConflictoException("El email ya estÃ¡ registrado");
         }
-
         Usuario nuevo = new Usuario();
         nuevo.setNombre(request.getNombre());
         nuevo.setEmail(email);
         nuevo.setPassword(passwordEncoder.encode(request.getPassword()));
         nuevo.setRol(determinarRol(request.getRol()));
-
         usuarioRepository.save(nuevo);
         log.info("Usuario registrado: {}", email);
-        return ResponseEntity.ok(new RegistroResponse("Usuario creado con éxito"));
+        return ResponseEntity.ok(new RegistroResponse("Usuario creado con Ã©xito"));
     }
 
     @Transactional
@@ -85,7 +83,6 @@ public class AuthController {
         String email = request.getEmail().trim().toLowerCase();
         Usuario usuario = usuarioRepository.findByEmail(email)
                 .orElseThrow(() -> new RecursoNoEncontradoException("Usuario no encontrado"));
-
         Set<Interes> intereses = new HashSet<>();
         if (request.getIntereses() != null) {
             for (String nombre : request.getIntereses()) {
@@ -95,7 +92,7 @@ public class AuthController {
         }
         usuario.setIntereses(intereses);
         usuarioRepository.save(usuario);
-        return ResponseEntity.ok(new RegistroResponse("Intereses guardados con éxito"));
+        return ResponseEntity.ok(new RegistroResponse("Intereses guardados con Ã©xito"));
     }
 
     private String determinarRol(String rol) {
