@@ -47,9 +47,9 @@ public class AuthController {
     public ResponseEntity<LoginResponse> login(@Valid @RequestBody LoginRequest request) {
         String email = request.getEmail().trim().toLowerCase();
         Usuario usuario = usuarioRepository.findByEmail(email)
-                .orElseThrow(() -> new AccesoNoAutorizadoException("Email o contraseÃ±a incorrectos"));
+                .orElseThrow(() -> new AccesoNoAutorizadoException("Email o contraseña incorrectos"));
         if (!passwordEncoder.matches(request.getPassword(), usuario.getPassword())) {
-            throw new AccesoNoAutorizadoException("Email o contraseÃ±a incorrectos");
+            throw new AccesoNoAutorizadoException("Email o contraseña incorrectos");
         }
         String token = jwtUtil.generateToken(usuario.getEmail(), usuario.getRol(), usuario.getId());
         return ResponseEntity.ok(new LoginResponse(
@@ -65,7 +65,7 @@ public class AuthController {
     public ResponseEntity<RegistroResponse> registrar(@Valid @RequestBody RegistroRequest request) {
         String email = request.getEmail().trim().toLowerCase();
         if (usuarioRepository.findByEmail(email).isPresent()) {
-            throw new ConflictoException("El email ya estÃ¡ registrado");
+            throw new ConflictoException("El email ya está registrado");
         }
         Usuario nuevo = new Usuario();
         nuevo.setNombre(request.getNombre());
@@ -74,7 +74,7 @@ public class AuthController {
         nuevo.setRol(determinarRol(request.getRol()));
         usuarioRepository.save(nuevo);
         log.info("Usuario registrado: {}", email);
-        return ResponseEntity.ok(new RegistroResponse("Usuario creado con Ã©xito"));
+        return ResponseEntity.ok(new RegistroResponse("Usuario creado con éxito"));
     }
 
     @Transactional
@@ -92,7 +92,7 @@ public class AuthController {
         }
         usuario.setIntereses(intereses);
         usuarioRepository.save(usuario);
-        return ResponseEntity.ok(new RegistroResponse("Intereses guardados con Ã©xito"));
+        return ResponseEntity.ok(new RegistroResponse("Intereses guardados con éxito"));
     }
 
     private String determinarRol(String rol) {

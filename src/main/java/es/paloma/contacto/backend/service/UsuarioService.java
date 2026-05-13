@@ -5,14 +5,11 @@ import es.paloma.contacto.backend.dto.UsuarioPerfilDTO;
 import es.paloma.contacto.backend.exception.RecursoNoEncontradoException;
 import es.paloma.contacto.backend.model.Interes;
 import es.paloma.contacto.backend.model.Usuario;
-import es.paloma.contacto.backend.repository.AlertaRepository;
-import es.paloma.contacto.backend.repository.EstadoAnimoRepository;
-import es.paloma.contacto.backend.repository.MatchRepository;
-import es.paloma.contacto.backend.repository.MensajeRepository;
-import es.paloma.contacto.backend.repository.UsuarioRepository;
+import es.paloma.contacto.backend.repository.*;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -45,7 +42,9 @@ public class UsuarioService {
         alertaRepository.deleteByReferidoId(id);
         estadoAnimoRepository.deleteByUsuarioId(id);
         matchRepository.deleteByMayorIdOrVoluntarioId(id, id);
-        gestorObjetosS3.eliminarObjeto(usuario.getFotoPerfilKey());
+        if (usuario.getFotoPerfilKey() != null) {
+            gestorObjetosS3.eliminarObjeto(usuario.getFotoPerfilKey());
+        }
         usuarioRepository.deleteById(id);
     }
 

@@ -59,6 +59,6 @@ public class AlertaController {
             alerta.setVista(true);
             Alerta actualizada = alertaRepository.save(alerta);
             return ResponseEntity.ok(actualizada);
-        }).orElseThrow(() -> new RecursoNoEncontradoException("No se pudo marcar como vista: Alerta no encontrada con ID " + id));
+        }).orElseThrow(() -> new RecursoNoEncontradoException("Alerta no encontrada con ID " + id));
     }
 }
