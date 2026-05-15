@@ -9,6 +9,7 @@ public class ContactoDTO {
     private String nombre;
     private String email;
     private String rol;
+    private String fotoPerfilKey;
 
     public ContactoDTO(Match match, Usuario contacto) {
         this.matchId = match.getId();
@@ -16,6 +17,7 @@ public class ContactoDTO {
         this.nombre = contacto.getNombre();
         this.email = contacto.getEmail();
         this.rol = contacto.getRol();
+        this.fotoPerfilKey = contacto.getFotoPerfilKey();
     }
 
     public Long getMatchId() {
@@ -36,5 +38,9 @@ public class ContactoDTO {
 
     public String getRol() {
         return rol;
+    }
+
+    public String getFotoPerfilKey() {
+        return fotoPerfilKey;
     }
 }
