@@ -11,7 +11,6 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDate;
-import java.util.ArrayList;
 
 @Service
 public class UsuarioService {
@@ -56,7 +55,7 @@ public class UsuarioService {
                 u.getDescripcion() != null ? u.getDescripcion() : "Sin descripción",
                 u.getFotoPerfilKey(),
                 u.getFechaNacimiento() != null ? u.getFechaNacimiento().toString() : "",
-                new ArrayList<>(u.getIntereses())
+                u.getIntereses().stream().map(es.paloma.contacto.backend.model.Interes::getNombre).toList()
         );
     }
 
@@ -82,7 +81,7 @@ public class UsuarioService {
                 u.getDescripcion() != null ? u.getDescripcion() : "Sin descripción",
                 u.getFotoPerfilKey(),
                 u.getFechaNacimiento() != null ? u.getFechaNacimiento().toString() : "",
-                new ArrayList<>(u.getIntereses())
+                u.getIntereses().stream().map(es.paloma.contacto.backend.model.Interes::getNombre).toList()
         );
     }
 }

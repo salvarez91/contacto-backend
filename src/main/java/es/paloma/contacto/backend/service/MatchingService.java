@@ -10,7 +10,6 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
@@ -53,7 +52,7 @@ public class MatchingService {
                         v.getDescripcion() != null ? v.getDescripcion() : "Sin descripción",
                         v.getFotoPerfilKey(),
                         v.getFechaNacimiento() != null ? v.getFechaNacimiento().toString() : "",
-                        new ArrayList<>(v.getIntereses())
+                        v.getIntereses().stream().map(es.paloma.contacto.backend.model.Interes::getNombre).toList()
                 ))
                 .collect(Collectors.toList());
     }

@@ -12,6 +12,6 @@ public record UsuarioPerfilDTO(
         String descripcion,
         String fotoPerfilKey,
         String fechaNacimiento,
-        List<Interes> intereses
+        List<String> intereses
 ) {
 }
