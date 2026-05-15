@@ -30,8 +30,8 @@ public class Usuario {
     private String email;
 
     @JsonIgnore
-    @NotBlank(message = "La contraseña es obligatoria")
-    @Size(min = 6, message = "La contraseña debe tener al menos 6 caracteres")
+    @NotBlank(message = "La contraseÃ±a es obligatoria")
+    @Size(min = 6, message = "La contraseÃ±a debe tener al menos 6 caracteres")
     @Column(nullable = false)
     private String password;
 
@@ -61,7 +61,6 @@ public class Usuario {
         fechaRegistro = LocalDateTime.now();
     }
 
-    @JsonIgnore
     @ManyToMany(fetch = FetchType.LAZY)
     @JoinTable(
             name = "usuario_intereses",
